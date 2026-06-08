@@ -1,4 +1,4 @@
-<html>
+<<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -258,7 +258,27 @@
         <div id="modalBody"></div>
     </div>
 </div>
-       
+
+   <div id="materialMaster" class="section">
+    <h2>Add / Edit Material Name</h2>
+
+    <input type="text" id="newMaterialItem" placeholder="Item Name">
+    <input type="text" id="newMaterialVersion" placeholder="Version">
+    <button class="saveBtn" onclick="addMaterialMaster()">Add Material</button>
+
+    <table id="materialTable">
+        <thead>
+            <tr>
+                <th>Sr.No</th>
+                <th>Item Name</th>
+                <th>Version</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
 <div class="footer">Since 2026<br>CONTACT US
 <br>Registered and Marketing office:
 Sanchar Telesystems Limited
@@ -653,6 +673,112 @@ function downloadCSV(tId,fName){
     });
     let cF=new Blob([csv.join("\n")],{type:"text/csv;charset=utf-8;"}),l=document.createElement("a");
     l.download=fName;l.href=window.URL.createObjectURL(cF);l.click()
+}
+function renderMaterialMaster(){
+  function updateApp(){
+    document.getElementById("syncStatus").innerText="● Cloud Sync Active";
+    document.getElementById("syncStatus").style.color="green";
+    buildItemMaster();
+    renderTables();
+    renderMaterialMaster();
+}
+    let tbody=document.querySelector("#materialTable tbody");
+    tbody.innerHTML="";
+
+    let materials={};
+
+    [entryData,receivedData,issueData,returnData].forEach(obj=>{
+        Object.values(obj).forEach(r=>{
+            if(r.item && r.version){
+                materials[r.item+"|||"+r.version]={
+                    item:r.item,
+                    version:r.version
+                };
+            }
+        });
+    });
+
+    let i=1;
+
+    Object.values(materials).forEach(m=>{
+        tbody.innerHTML+=`
+        <tr>
+            <td>${i++}</td>
+            <td>${m.item}</td>
+            <td>${m.version}</td>
+            <td>
+                <button class="saveBtn"
+                onclick="editMaterial('${m.item}','${m.version}')">
+                Edit
+                </button>
+            </td>
+        </tr>`;
+    });
+}
+
+function addMaterialMaster(){
+
+    let item=document.getElementById("newMaterialItem").value.trim();
+    let version=document.getElementById("newMaterialVersion").value.trim();
+
+    if(!item || !version){
+        alert("Item aur Version bharo");
+        return;
+    }
+
+    db.ref("store_entries").push({
+        item:item,
+        version:version,
+        qty:0,
+        date:new Date().toISOString().split('T')[0],
+        remarks:"Material Master"
+    });
+
+    document.getElementById("newMaterialItem").value="";
+    document.getElementById("newMaterialVersion").value="";
+
+    alert("Material Added");
+}
+
+function editMaterial(oldItem,oldVersion){
+
+    let newItem=prompt("New Item Name",oldItem);
+    if(newItem===null) return;
+
+    let newVersion=prompt("New Version",oldVersion);
+    if(newVersion===null) return;
+
+    let paths=[
+        "store_entries",
+        "store_received",
+        "store_issues",
+        "store_returns"
+    ];
+
+    paths.forEach(path=>{
+
+        db.ref(path).once("value",snap=>{
+
+            snap.forEach(child=>{
+
+                let d=child.val();
+
+                if(d.item===oldItem && d.version===oldVersion){
+
+                    child.ref.update({
+                        item:newItem,
+                        version:newVersion
+                    });
+
+                }
+
+            });
+
+        });
+
+    });
+
+    alert("Material Updated Successfully");
 }
 </script>
 </body>
