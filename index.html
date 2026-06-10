@@ -96,8 +96,8 @@
         <div class="header-actions">
             <div class="filter-group">
                 <input type="text" placeholder="Search" onkeyup="searchTable(this,'reportTable')">
-                <label>From:</label><input type="date" id="repFromDate" onchange="filterByDate('reportTable', 9, 'repFromDate', 'repToDate')">
-                <label>To:</label><input type="date" id="repToDate" onchange="filterByDate('reportTable', 9, 'repFromDate', 'repToDate')">
+                <label>From:</label><input type="date" id="repFromDate" onchange="filterByDate('reportTable', 10, 'repFromDate', 'repToDate')">
+                <label>To:</label><input type="date" id="repToDate" onchange="filterByDate('reportTable', 10, 'repFromDate', 'repToDate')">
                 <button class="downloadBtn" onclick="downloadCSV('reportTable','Stock_Report.csv')">Download Report</button>
                 <button class="restoreBtn" onclick="restoreData()">Restore Deleted</button>
             </div>
@@ -188,7 +188,8 @@
         <div style="background:#f1f3f5; padding:12px; border-radius:6px; margin-bottom:15px;">
             <h4>General Details</h4>
             <input type="text" id="issuePerson" placeholder="Person">
-            <input type="text" id="issueParty" placeholder="Party">
+            <input type="text" id="issueParty" list="partyList" placeholder="Party Name">
+            <input type="text" id="issueLocation" list="locationList" placeholder="Location">
             <input type="text" id="issuePurpose" placeholder="Purpose">
             <input type="date" id="issueDate">
             <input type="text" id="issueRemarks" placeholder="Remarks">
@@ -202,14 +203,14 @@
         <div class="header-actions" style="margin-top:25px">
             <div class="filter-group">
                 <input type="text" placeholder="Search..." onkeyup="searchTable(this,'issueTable')">
-                <label>From:</label><input type="date" id="issueFromDate" onchange="filterByDate('issueTable', 8, 'issueFromDate', 'issueToDate')">
-                <label>To:</label><input type="date" id="issueToDate" onchange="filterByDate('issueTable', 8, 'issueFromDate', 'issueToDate')">
+                <label>From:</label><input type="date" id="issueFromDate" onchange="filterByDate('issueTable', 9, 'issueFromDate', 'issueToDate')">
+                <label>To:</label><input type="date" id="issueToDate" onchange="filterByDate('issueTable', 9, 'issueFromDate', 'issueToDate')">
                 <button class="downloadBtn" onclick="downloadCSV('issueTable','Issue_Report.csv')">Download Issued</button>
             </div>
         </div>
         <table id="issueTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Person</th><th>Party</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -220,7 +221,8 @@
         <div style="background:#f1f3f5; padding:12px; border-radius:6px; margin-bottom:15px;">
             <h4>General Details</h4>
             <input type="text" id="returnPerson" placeholder="Person">
-            <input type="text" id="returnParty" placeholder="Party Name">
+            <input type="text" id="returnParty" list="partyList" placeholder="Party Name">
+            <input type="text" id="returnLocation" list="locationList" placeholder="Location">
             <select id="returnStatus"><option value="Ok">Ok (Stock In)</option><option value="Faulty">Faulty (No Stock In)</option></select>
             <input type="date" id="returnDate">
             <input type="text" id="returnRemarks" placeholder="Remarks">
@@ -234,14 +236,14 @@
         <div class="header-actions" style="margin-top:25px">
             <div class="filter-group">
                 <input type="text" placeholder="Search..." onkeyup="searchTable(this,'returnTable')">
-                <label>From:</label><input type="date" id="returnFromDate" onchange="filterByDate('returnTable', 7, 'returnFromDate', 'returnToDate')">
-                <label>To:</label><input type="date" id="returnToDate" onchange="filterByDate('returnTable', 7, 'returnFromDate', 'returnToDate')">
+                <label>From:</label><input type="date" id="returnFromDate" onchange="filterByDate('returnTable', 8, 'returnFromDate', 'returnToDate')">
+                <label>To:</label><input type="date" id="returnToDate" onchange="filterByDate('returnTable', 8, 'returnFromDate', 'returnToDate')">
                 <button class="downloadBtn" onclick="downloadCSV('returnTable','Return_Report.csv')">Download Returns</button>
             </div>
         </div>
         <table id="returnTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Person</th><th>Party</th><th>Status</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Status</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -281,6 +283,8 @@
 
 <datalist id="itemList"></datalist>
 <datalist id="versionList"></datalist>
+<datalist id="partyList"></datalist>
+<datalist id="locationList"></datalist>
 
 <script>
 let currentGeneratedOTP = null;
@@ -483,7 +487,7 @@ function getLiveStockPool(targetItem, targetVersion) {
     return pool;
 }
 
-/* --- Upgraded Dynamic Issue Rows --- */
+/* --- Dynamic Issue Rows --- */
 function addIssueRow() {
     issueRowCount++;
     let container = document.getElementById("issueRowsContainer");
@@ -537,6 +541,7 @@ function loadRowLiveIMEIs(rowId) {
 function saveGlobalIssues() {
     let person = document.getElementById("issuePerson").value.trim();
     let party = document.getElementById("issueParty").value.trim();
+    let location = document.getElementById("issueLocation").value.trim();
     let purpose = document.getElementById("issuePurpose").value.trim();
     let date = document.getElementById("issueDate").value;
     let remarks = document.getElementById("issueRemarks").value.trim();
@@ -570,7 +575,7 @@ function saveGlobalIssues() {
             });
         });
 
-        validLogs.push({ item, version, qty, person, party, purpose, date, remarks, devices });
+        validLogs.push({ item, version, qty, person, party, location, purpose, date, remarks, devices });
     });
 
     if(hasError) {
@@ -585,13 +590,14 @@ function saveGlobalIssues() {
     alert("All Multi-Item Issues Saved Successfully!");
     document.getElementById("issuePerson").value = "";
     document.getElementById("issueParty").value = "";
+    document.getElementById("issueLocation").value = "";
     document.getElementById("issuePurpose").value = "";
     document.getElementById("issueRemarks").value = "";
     document.getElementById("issueRowsContainer").innerHTML = "";
     addIssueRow();
 }
 
-/* --- Upgraded Dynamic Return Rows --- */
+/* --- Dynamic Return Rows --- */
 function addReturnRow() {
     returnRowCount++;
     let container = document.getElementById("returnRowsContainer");
@@ -602,7 +608,7 @@ function addReturnRow() {
             <strong>Return Log Details:</strong><br>
             <input type="text" class="returnItem" list="itemList" placeholder="Item Name">
             <input type="text" class="returnVersion" list="versionList" placeholder="Version">
-            <input type="number" class="returnQty" placeholder="Qty" oninput="handleDeviceInputsTrigger('${rowId}_qty', '${rowId}_check', '${rowId}_container')"" id="${rowId}_qty">
+            <input type="number" class="returnQty" placeholder="Qty" oninput="handleDeviceInputsTrigger('${rowId}_qty', '${rowId}_check', '${rowId}_container')" id="${rowId}_qty">
             <br>
             <label class="imei-toggle-wrap">
                 <input type="checkbox" id="${rowId}_check" onchange="handleDeviceInputsTrigger('${rowId}_qty', '${rowId}_check', '${rowId}_container')"> 
@@ -617,6 +623,7 @@ function addReturnRow() {
 function saveGlobalReturns() {
     let person = document.getElementById("returnPerson").value.trim();
     let party = document.getElementById("returnParty").value.trim();
+    let location = document.getElementById("returnLocation").value.trim();
     let status = document.getElementById("returnStatus").value;
     let date = document.getElementById("returnDate").value;
     let remarks = document.getElementById("returnRemarks").value.trim();
@@ -646,7 +653,7 @@ function saveGlobalReturns() {
             devices = collectDeviceDetails(`${rowId}_container`);
         }
 
-        validLogs.push({ item, version, qty, person, party, status, date, remarks, devices });
+        validLogs.push({ item, version, qty, person, party, location, status, date, remarks, devices });
     });
 
     if(hasError) {
@@ -661,6 +668,7 @@ function saveGlobalReturns() {
     alert("All Multi-Item Returns Saved Successfully!");
     document.getElementById("returnPerson").value = "";
     document.getElementById("returnParty").value = "";
+    document.getElementById("returnLocation").value = "";
     document.getElementById("returnRemarks").value = "";
     document.getElementById("returnRowsContainer").innerHTML = "";
     addReturnRow();
@@ -673,15 +681,31 @@ function removeDynamicRow(id) {
 
 function buildItemMaster(){
     let m={};
-    const pr=d=>{Object.values(d).forEach(x=>{if(x.item&&x.version)m[x.item+"|||"+x.version]={i:x.item,v:x.version}})};
+    let parties = new Set();
+    let locations = new Set();
+    
+    const pr=d=>{
+        Object.values(d).forEach(x=>{
+            if(x.item&&x.version) m[x.item+"|||"+x.version]={i:x.item,v:x.version};
+            if(x.party) parties.add(x.party.trim());
+            if(x.location) locations.add(x.location.trim());
+        })
+    };
     pr(entryData);pr(receivedData);pr(issueData);pr(returnData);
+    
     let iL=document.getElementById("itemList"),vL=document.getElementById("versionList");
-    iL.innerHTML="";vL.innerHTML="";
+    let pL=document.getElementById("partyList"),lL=document.getElementById("locationList");
+    
+    iL.innerHTML=""; vL.innerHTML=""; pL.innerHTML=""; lL.innerHTML="";
     let itemsAdded=new Set(),versionsAdded=new Set();
+    
     Object.values(m).forEach(x=>{
         if(!itemsAdded.has(x.i)){iL.innerHTML+=`<option value="${x.i}">`;itemsAdded.add(x.i)}
         if(!versionsAdded.has(x.v)){vL.innerHTML+=`<option value="${x.v}">`;versionsAdded.add(x.v)}
-    })
+    });
+    
+    parties.forEach(p => { pL.innerHTML += `<option value="${p}">`; });
+    locations.forEach(l => { lL.innerHTML += `<option value="${l}">`; });
 }
 
 function saveStockEntry(){
@@ -830,10 +854,10 @@ function renderSimpleTable(obj,sel,type,node){
         if(type==="entry")r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${formattedDate}</td><td>${item.remarks||""}</td><td>${detailsBtn}</td>`;
         else if(type==="received")r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.billNumber||""}</td><td>${item.supplierName||""}</td><td>${formattedDate}</td><td>${detailsBtn}</td>`;
         else if(type==="issue") {
-            r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.person||""}</td><td>${item.party||""}</td><td>${item.purpose||""}</td><td>${item.remarks||""}</td><td>${formattedDate}</td><td>${detailsBtn}</td>`;
+            r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.person||""}</td><td>${item.party||""}</td><td>${item.location||""}</td><td>${item.purpose||""}</td><td>${item.remarks||""}</td><td>${formattedDate}</td><td>${detailsBtn}</td>`;
         }
         else if(type==="return") {
-            r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.person||""}</td><td>${item.party||""}</td><td>${item.status}</td><td>${formattedDate}</td><td>${detailsBtn}</td>`;
+            r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.person||""}</td><td>${item.party||""}</td><td>${item.location||""}</td><td>${item.status}</td><td>${formattedDate}</td><td>${detailsBtn}</td>`;
         }
         
         r+=`<td><button class="deleteBtn" onclick="deleteItem('${node}','${k}')">Delete</button></td></tr>`;
