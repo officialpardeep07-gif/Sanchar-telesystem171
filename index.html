@@ -32,19 +32,25 @@
         .footer{background:#002b5c;color:#fff;text-align:center;padding:15px;margin-top:20px;font-size:13px;line-height:22px}
         .header-actions{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:10px;gap:10px}
         .filter-group{display:flex;align-items:center;gap:5px;flex-wrap:wrap;background:#e9ecef;padding:5px 10px;border-radius:5px}
+        
+        /* Modal Styles */
         .modal {display:none;position:fixed;z-index:10000;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.4)}
-        .modal-content {background-color:#fefefe;margin:15% auto;padding:20px;border:1px solid #888;width:60%;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.2)}
+        .modal-content {background-color:#fefefe;margin:10% auto;padding:20px;border:1px solid #888;width:65%;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.2)}
         .close {color:#aaa;float:right;font-size:28px;font-weight:bold;cursor:pointer}
         .close:hover {color:#000}
         .device-entry-row {display:flex;gap:10px;margin-bottom:5px;background:#f9f9f9;padding:5px;border-radius:4px;border:1px solid #ddd}
         .settings-link {display:block;margin-top:15px;font-size:13px;color:#0066cc;cursor:pointer;text-decoration:underline}
         .imei-toggle-wrap {display:inline-flex;align-items:center;margin:4px;font-weight:bold;color:#002b5c;cursor:pointer}
-        .imei-pill {display:inline-block;background:#e1f5fe;color:#0288d1;padding:2px 6px;margin:2px;border-radius:4px;font-size:11px;border:1px solid #b3e5fc}
+        
+        /* Live Inventory Items Box */
+        .live-imei-box {border:1px solid #bbbbbb; padding:8px; background:#fff; max-height:180px; overflow-y:auto; border-radius:4px; margin-top:5px;}
+        .live-imei-item {display:flex; align-items:center; gap:8px; padding:3px 0; font-size:13px; border-bottom:1px dashed #eee;}
     </style>
 </head>
 <body>
 <div id="loginPage">
     <div class="login-header">Sanchar Telesystems Limited</div>
+    
     <div class="loginBox" id="mainLoginBox">
         <h2>Login</h2>
         <input type="text" id="username" placeholder="Username" style="width:90%"><br>
@@ -53,6 +59,7 @@
         <div id="error"></div>
         <span class="settings-link" onclick="toggleCredentialChange(true)">Change Username/Password</span>
     </div>
+
     <div class="loginBox" id="changeCredentialBox" style="display:none;">
         <h2>Change Credentials</h2>
         <p style="font-size:12px; color:#555;">OTP will be generated for <br><strong>officialpardeep07@gmail.com</strong></p>
@@ -77,7 +84,6 @@
 <div class="container">
     <div class="menu">
         <button onclick="showSection('stockReport')">Stock Report</button>
-        <button onclick="showSection('materialMasterSection')">Material Master</button>
         <button onclick="showSection('stockEntry')">Stock Entry</button>
         <button onclick="showSection('received')">Received</button>
         <button onclick="showSection('issueSection')">Issue</button>
@@ -98,25 +104,7 @@
         </div>
         <table id="reportTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item Name</th><th>Version</th><th>Stock Entry</th><th>Purchase</th><th>Issue</th><th>Return</th><th>Balance</th><th>Available IMEIs / Serials</th><th>Last Updated</th><th>Remarks</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <div id="materialMasterSection" class="section">
-        <h2>Material Master</h2>
-        <div style="background:#f9f9f9;padding:10px;border-radius:5px;margin-bottom:15px;border:1px dashed #ccc">
-            <strong id="mmFormTitle">Add New Material / Item:</strong><br>
-            <input type="hidden" id="mmKey">
-            <input type="text" id="mmItemName" placeholder="Item Name" style="width:250px">
-            <input type="text" id="mmVersion" placeholder="Version" style="width:150px">
-            <button class="saveBtn" id="mmSaveBtn" onclick="saveMaterialMaster()">Save Item</button>
-            <button class="deleteBtn" id="mmCancelBtn" onclick="resetMaterialMasterForm()" style="display:none;">Cancel</button>
-        </div>
-        <table id="materialMasterTable">
-            <thead>
-                <tr><th>Sr.No</th><th>Item Name</th><th>Version</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item Name</th><th>Version</th><th>Stock Entry</th><th>Purchase</th><th>Issue</th><th>Return</th><th>Balance</th><th>Last Updated</th><th>Remarks</th><th>Live Devices</th><th>Action</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -196,20 +184,22 @@
 
     <div id="issueSection" class="section">
         <h2>Issue Item</h2>
-        <input type="text" id="issueItem" list="itemList" placeholder="Item Name">
-        <input type="text" id="issueVersion" list="versionList" placeholder="Version">
-        <input type="number" id="issueQty" placeholder="Qty" oninput="handleDeviceInputsTrigger('issueQty', 'issueImeiCheck', 'issueDevicesContainer')">
+        <input type="text" id="issueItem" list="itemList" placeholder="Item Name" onchange="loadAvailableLiveIMEIs()" onkeyup="loadAvailableLiveIMEIs()">
+        <input type="text" id="issueVersion" list="versionList" placeholder="Version" onchange="loadAvailableLiveIMEIs()" onkeyup="loadAvailableLiveIMEIs()">
+        <input type="number" id="issueQty" placeholder="Qty (Auto from Checkbox)" readonly style="background:#e9ecef;">
         <input type="text" id="issuePerson" placeholder="Person">
         <input type="text" id="issueParty" placeholder="Party">
         <input type="text" id="issuePurpose" placeholder="Purpose">
         <input type="date" id="issueDate">
-        <input type="text" id="issueRemarks" placeholder="Remarks"><br>
+        <input type="text" id="issueRemarks" placeholder="Remarks">
         
-        <label class="imei-toggle-wrap">
-            <input type="checkbox" id="issueImeiCheck" onchange="handleDeviceInputsTrigger('issueQty', 'issueImeiCheck', 'issueDevicesContainer')"> 
-            Enter Device Details (Serial/IMEI)
-        </label>
-        <div id="issueDevicesContainer" style="margin-top:10px"></div>
+        <div style="margin:10px 4px; font-weight:bold; color:#002b5c;">
+            ⚙️ Select Available Serial/IMEI from Live Stock (Auto-Out from Stock Report):
+            <div class="live-imei-box" id="issueLiveImeiContainer">
+                <p style="color:#888; font-style:italic; padding:5px;">Pehle Item Name aur Version select karein...</p>
+            </div>
+        </div>
+        
         <button class="saveBtn" onclick="saveIssue()">Save Issue</button>
         
         <div class="header-actions" style="margin-top:15px">
@@ -235,7 +225,7 @@
         <input type="number" id="returnQty" placeholder="Qty" oninput="handleDeviceInputsTrigger('returnQty', 'returnImeiCheck', 'returnDevicesContainer')">
         <input type="text" id="returnPerson" placeholder="Person">
         <input type="text" id="returnParty" placeholder="Party Name">
-        <select id="returnStatus"><option value="Ok">Ok</option><option value="Faulty">Faulty</option></select>
+        <select id="returnStatus"><option value="Ok">Ok (Stock In)</option><option value="Faulty">Faulty (No Stock In)</option></select>
         <input type="date" id="returnDate">
         <input type="text" id="returnRemarks" placeholder="Remarks"><br>
         
@@ -243,6 +233,7 @@
             <input type="checkbox" id="returnImeiCheck" onchange="handleDeviceInputsTrigger('returnQty', 'returnImeiCheck', 'returnDevicesContainer')"> 
             Enter Device Details (Serial/IMEI)
         </label>
+        
         <div id="returnDevicesContainer" style="margin-top:10px"></div>
         <button class="saveBtn" onclick="saveReturn()">Save Return</button>
         
@@ -270,9 +261,28 @@
         <div id="modalBody"></div>
     </div>
 </div>
+
+<div id="editMasterModal" class="modal">
+    <div class="modal-content" style="width: 40%; text-align: center;">
+        <span class="close" onclick="closeEditMasterModal()">&times;</span>
+        <h3>⚙️ Edit Item Details</h3>
+        <p style="font-size:12px; color: #555;">Is item ka naam badalne par sabhi categories mein automatic update ho jayega.</p>
+        <input type="hidden" id="oldItemNameHidden">
+        <input type="hidden" id="oldVersionHidden">
+        <div style="margin-bottom:10px;">
+            <label style="font-weight:bold; display:block;">Item Name:</label>
+            <input type="text" id="editModalItemName" style="width:90%;">
+        </div>
+        <div style="margin-bottom:15px;">
+            <label style="font-weight:bold; display:block;">Version:</label>
+            <input type="text" id="editModalVersion" style="width:90%;">
+        </div>
+        <button class="saveBtn" onclick="submitGlobalItemEdit()" style="width:94%; padding:10px;">Update Everywhere</button>
+    </div>
+</div>
        
-<div class="footer">Since 2026<br>CONTACT US<br>Registered and Marketing office:<br>Sanchar Telesystems Limited<br>A-78, Ground Floor, Okhla Industrial Area, Phase-II, New Delhi-110020<br>Ph : + 91-(11)-46528894-97<br>info@sanchartelesystems.com
-  <div class="footer">develop & design By Pardeep Shekhawat<br>officialpardeep07@gmail.com</div>
+<div class="footer">Since 2026<br>CONTACT US<br>Registered and Marketing office: Sanchar Telesystems Limited A-78, Ground Floor, Okhla Industrial Area, Phase-II, New Delhi-110020<br>Ph : + 91-(11)-46528894-97<br>info@sanchartelesystems.com
+  <div class="footer">develope & design By Pardeep Shekhawat<br>officialpardeep07@gmail.com</div>
 </div>
 
 <datalist id="itemList"></datalist>
@@ -280,13 +290,25 @@
 
 <script>
 let currentGeneratedOTP = null;
+
 if(!localStorage.getItem("store_user")) localStorage.setItem("store_user", "Sanchar");
 if(!localStorage.getItem("store_pass")) localStorage.setItem("store_pass", "Sanchar@171");
+
+function checkSecurePassword() {
+    let pass = prompt("Action perform karne ke liye Security Password enter karein:");
+    if(pass === "Pardeep@1999") {
+        return true;
+    } else {
+        alert("Incorrect Password! Access Denied.");
+        return false;
+    }
+}
 
 function loginSystem(){
     var u=document.getElementById("username").value.trim(),p=document.getElementById("password").value.trim();
     var savedU = localStorage.getItem("store_user");
     var savedP = localStorage.getItem("store_pass");
+
     if(u===savedU && p===savedP){
         document.getElementById("loginPage").style.display="none";
         if(typeof updateApp()==="function")updateApp()
@@ -347,6 +369,7 @@ function saveNewCredentials(){
     toggleCredentialChange(false);
 }
 
+// Firebase configuration setup
 const firebaseConfig={
     apiKey:"AIzaSyAJhKRS7D7mI57MuaF5CGH8_p6kIFO_uAE",
     authDomain:"poc-store-e1d14.firebaseapp.com",
@@ -359,9 +382,8 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-let entryData={},receivedData={},issueData={},returnData={},deletedBackup={},materialMasterData={};
+let entryData={},receivedData={},issueData={},returnData={},deletedBackup={};
 
-db.ref("material_master").on("value",s=>{materialMasterData=s.val()||{};updateApp()});
 db.ref("store_entries").on("value",s=>{entryData=s.val()||{};updateApp()});
 db.ref("store_received").on("value",s=>{receivedData=s.val()||{};updateApp()});
 db.ref("store_issues").on("value",s=>{issueData=s.val()||{};updateApp()});
@@ -373,7 +395,7 @@ function updateApp(){
     document.getElementById("syncStatus").style.color="green";
     buildItemMaster();
     renderTables();
-    renderMaterialMasterTable();
+    loadAvailableLiveIMEIs();
 }
 
 function formatDateDDMMYYYY(dateStr) {
@@ -389,12 +411,15 @@ function formatDateDDMMYYYY(dateStr) {
 function handleDeviceInputsTrigger(qtyInputId, checkId, containerId) {
     let isChecked = document.getElementById(checkId).checked;
     let container = document.getElementById(containerId);
+    
     if(!isChecked) {
         container.innerHTML = "";
         return;
     }
+    
     let qty = parseInt(document.getElementById(qtyInputId).value) || 0;
     container.innerHTML = "";
+    
     if(qty > 0) {
         container.innerHTML = "<strong>Enter Device Details (Serial & IMEIs):</strong><br>";
         for(let i = 0; i < qty; i++) {
@@ -423,72 +448,99 @@ function collectDeviceDetails(containerId) {
     return list;
 }
 
+function getLiveStockPool(targetItem, targetVersion) {
+    let pool = [];
+    const addInward = (dataObj) => {
+        Object.values(dataObj).forEach(x => {
+            if(x.item === targetItem && x.version === targetVersion && x.devices) {
+                x.devices.forEach(d => {
+                    if(d.serial && !pool.some(p => p.serial === d.serial)) {
+                        pool.push({ serial: d.serial, imei1: d.imei1 || '', imei2: d.imei2 || '' });
+                    }
+                });
+            }
+        });
+    };
+    addInward(entryData);
+    addInward(receivedData);
+
+    Object.values(issueData).forEach(x => {
+        if(x.item === targetItem && x.version === targetVersion && x.devices) {
+            x.devices.forEach(d => {
+                pool = pool.filter(p => p.serial !== d.serial);
+            });
+        }
+    });
+
+    Object.values(returnData).forEach(x => {
+        if(x.item === targetItem && x.version === targetVersion && x.status === "Ok" && x.devices) {
+            x.devices.forEach(d => {
+                if(d.serial && !pool.some(p => p.serial === d.serial)) {
+                    pool.push({ serial: d.serial, imei1: d.imei1 || '', imei2: d.imei2 || '' });
+                }
+            });
+        }
+    });
+    return pool;
+}
+
+function loadAvailableLiveIMEIs() {
+    let item = document.getElementById("issueItem").value.trim();
+    let version = document.getElementById("issueVersion").value.trim();
+    let container = document.getElementById("issueLiveImeiContainer");
+    
+    if(!item || !version) {
+        container.innerHTML = `<p style="color:#888; font-style:italic; padding:5px;">Pehle Item Name aur Version select karein...</p>`;
+        document.getElementById("issueQty").value = "";
+        return;
+    }
+
+    let availablePool = getLiveStockPool(item, version);
+    container.innerHTML = "";
+
+    if(availablePool.length === 0) {
+        container.innerHTML = `<p style="color:red; font-weight:bold; padding:5px;">Is item ke koi Live Serial/IMEI details database mein available nahi hain!</p>`;
+        document.getElementById("issueQty").value = "0";
+        return;
+    }
+
+    availablePool.forEach((device, idx) => {
+        container.innerHTML += `
+            <div class="live-imei-item">
+                <input type="checkbox" class="issue-imei-cb" value="${device.serial}" data-imei1="${device.imei1}" data-imei2="${device.imei2}" onchange="recalculateIssueQty()">
+                <span><strong>S/N:</strong> ${device.serial} | <strong>IMEI 1:</strong> ${device.imei1 || '-'} | <strong>IMEI 2:</strong> ${device.imei2 || '-'}</span>
+            </div>`;
+    });
+    recalculateIssueQty();
+}
+
+function recalculateIssueQty() {
+    let checkboxes = document.querySelectorAll(".issue-imei-cb:checked");
+    document.getElementById("issueQty").value = checkboxes.length;
+}
+
 function buildItemMaster(){
+    let m={};
+    const pr=d=>{Object.values(d).forEach(x=>{if(x.item&&x.version)m[x.item+"|||"+x.version]={i:x.item,v:x.version}})};
+    pr(entryData);pr(receivedData);pr(issueData);pr(returnData);
     let iL=document.getElementById("itemList"),vL=document.getElementById("versionList");
     iL.innerHTML="";vL.innerHTML="";
     let itemsAdded=new Set(),versionsAdded=new Set();
-    Object.values(materialMasterData).forEach(x=>{
-        if(x.item && !itemsAdded.has(x.item)){iL.innerHTML+=`<option value="${x.item}">`;itemsAdded.add(x.item)}
-        if(x.version && !versionsAdded.has(x.version)){vL.innerHTML+=`<option value="${x.version}">`;versionsAdded.add(x.version)}
-    });
-}
-
-// Material Master Functions
-function saveMaterialMaster(){
-    let key = document.getElementById("mmKey").value;
-    let item = document.getElementById("mmItemName").value.trim();
-    let version = document.getElementById("mmVersion").value.trim();
-    if(!item || !version){alert("Item Name aur Version daalein");return;}
-    
-    if(key){
-        db.ref("material_master/" + key).set({item:item, version:version});
-    } else {
-        db.ref("material_master").push({item:item, version:version});
-    }
-    resetMaterialMasterForm();
-}
-
-function editMaterialMaster(key, item, version){
-    document.getElementById("mmKey").value = key;
-    document.getElementById("mmItemName").value = item;
-    document.getElementById("mmVersion").value = version;
-    document.getElementById("mmFormTitle").innerText = "Edit Material / Item:";
-    document.getElementById("mmSaveBtn").innerText = "Update Item";
-    document.getElementById("mmCancelBtn").style.display = "inline-block";
-}
-
-function resetMaterialMasterForm(){
-    document.getElementById("mmKey").value = "";
-    document.getElementById("mmItemName").value = "";
-    document.getElementById("mmVersion").value = "";
-    document.getElementById("mmFormTitle").innerText = "Add New Material / Item:";
-    document.getElementById("mmSaveBtn").innerText = "Save Item";
-    document.getElementById("mmCancelBtn").style.display = "none";
-}
-
-function renderMaterialMasterTable(){
-    let b = document.querySelector("#materialMasterTable tbody"); b.innerHTML = "";
-    let idx = 1;
-    Object.entries(materialMasterData).forEach(([k, x]) => {
-        b.innerHTML += `<tr>
-            <td>${idx++}</td>
-            <td>${x.item}</td>
-            <td>${x.version}</td>
-            <td>
-                <button class="editBtn" onclick="editMaterialMaster('${k}','${x.item}','${x.version}')">Edit</button>
-                <button class="deleteBtn" onclick="deleteItem('material_master','${k}')">Delete</button>
-            </td>
-        </tr>`;
-    });
+    Object.values(m).forEach(x=>{
+        if(!itemsAdded.has(x.i)){iL.innerHTML+=`<option value="${x.i}">`;itemsAdded.add(x.i)}
+        if(!versionsAdded.has(x.v)){vL.innerHTML+=`<option value="${x.v}">`;versionsAdded.add(x.v)}
+    })
 }
 
 function saveStockEntry(){
     let item=document.getElementById("entryItem").value.trim(),version=document.getElementById("entryVersion").value.trim(),qty=parseInt(document.getElementById("entryQty").value)||0,date=document.getElementById("entryDate").value,remarks=document.getElementById("entryRemarks").value.trim();
     if(!item||qty<=0){alert("Sahi Data Daalein");return}
+    
     let devices = [];
     if(document.getElementById("entryImeiCheck").checked){
         devices = collectDeviceDetails("entryDevicesContainer");
     }
+    
     db.ref("store_entries").push({item:item,version:version,qty:qty,date:date,remarks:remarks,devices:devices});
     document.getElementById("entryItem").value="";document.getElementById("entryVersion").value="";document.getElementById("entryQty").value="";document.getElementById("entryRemarks").value="";
     document.getElementById("entryImeiCheck").checked=false;document.getElementById("entryDevicesContainer").innerHTML="";
@@ -496,7 +548,7 @@ function saveStockEntry(){
 
 function uploadCSVEntries(){
     let fileInput=document.getElementById("csvFileInput");
-    if(!fileInput.files.length){alert("Kripya pehle ek CSV/Excel file select karein");return}
+    if(!fileInput.files.length){alert("Kripya pehle ek CSV file select karein");return}
     let file=fileInput.files[0],reader=new FileReader();
     reader.onload=function(e){
         let text=e.target.result,lines=text.split("\n"),count=0;
@@ -505,10 +557,10 @@ function uploadCSVEntries(){
             let cols=lines[i].split(",");
             if(cols.length>=3){
                 let item=cols[0].replace(/"/g,"").trim(),version=cols[1].replace(/"/g,"").trim(),qty=parseInt(cols[2])||0,date=cols[3]?cols[3].replace(/"/g,"").trim():new Date().toISOString().split('T')[0],remarks=cols[4]?cols[4].replace(/"/g,"").trim():"";
-                if(item&&qty>0){db.ref("store_entries").push({item:item,version:version,qty:qty,date:date,remarks:remarks});count++}
+                if(item&&qty>0){db.ref("store_entries").push({item:item,version:version,qty:qty,date:date,remarks:remarks,devices:[]});count++}
             }
         }
-        alert(count+" Entries successfully upload ho gayi hain!");fileInput.value=""
+        alert(count+" Entries upload ho gayi hain!");fileInput.value=""
     };
     reader.readAsText(file)
 }
@@ -516,53 +568,100 @@ function uploadCSVEntries(){
 function saveReceived(){
     let item=document.getElementById("recItem").value.trim(),version=document.getElementById("recVersion").value.trim(),qty=parseInt(document.getElementById("recQty").value)||0,billNumber=document.getElementById("billNumber").value.trim(),supplierName=document.getElementById("supplierName").value.trim(),date=document.getElementById("recDate").value,remarks=document.getElementById("recRemarks").value.trim();
     if(!item||qty<=0){alert("Sahi Data Daalein");return}
+    
     let devices = [];
     if(document.getElementById("recImeiCheck").checked){
         devices = collectDeviceDetails("recDevicesContainer");
     }
+    
     db.ref("store_received").push({item:item,version:version,qty:qty,billNumber:billNumber,supplierName:supplierName,date:date,remarks:remarks,devices:devices});
     document.getElementById("recItem").value="";document.getElementById("recVersion").value="";document.getElementById("recQty").value="";document.getElementById("billNumber").value="";document.getElementById("supplierName").value="";document.getElementById("recRemarks").value="";
     document.getElementById("recImeiCheck").checked=false;document.getElementById("recDevicesContainer").innerHTML="";
 }
 
 function saveIssue(){
-    let item=document.getElementById("issueItem").value.trim(),version=document.getElementById("issueVersion").value.trim(),qty=parseInt(document.getElementById("issueQty").value)||0,person=document.getElementById("issuePerson").value.trim(),party=document.getElementById("issueParty").value.trim(),purpose=document.getElementById("issuePurpose").value.trim(),date=document.getElementById("issueDate").value,remarks=document.getElementById("issueRemarks")?document.getElementById("issueRemarks").value.trim():"";
-    if(!item||qty<=0){alert("Sahi Data Daalein");return}
-    let cS=getLiveItemBalance(item,version);
-    if(cS<qty){alert("Stock kam hai! Available: "+cS);return}
+    let item=document.getElementById("issueItem").value.trim(),version=document.getElementById("issueVersion").value.trim(),qty=parseInt(document.getElementById("issueQty").value)||0,person=document.getElementById("issuePerson").value.trim(),party=document.getElementById("issueParty").value.trim(),purpose=document.getElementById("issuePurpose").value.trim(),date=document.getElementById("issueDate").value,remarks=document.getElementById("issueRemarks").value.trim();
+    if(!item||qty<=0){alert("Kripya live list se device Serial/IMEI ko select karein!");return}
+    
     let devices = [];
-    if(document.getElementById("issueImeiCheck").checked){
-        devices = collectDeviceDetails("issueDevicesContainer");
-    }
+    let checkboxes = document.querySelectorAll(".issue-imei-cb:checked");
+    checkboxes.forEach(cb => {
+        devices.push({
+            serial: cb.value,
+            imei1: cb.getAttribute("data-imei1") || "",
+            imei2: cb.getAttribute("data-imei2") || ""
+        });
+    });
+    
     db.ref("store_issues").push({item:item,version:version,qty:qty,person:person,party:party,purpose:purpose,date:date,remarks:remarks,devices:devices});
-    document.getElementById("issueItem").value="";document.getElementById("issueVersion").value="";document.getElementById("issueQty").value="";document.getElementById("issuePerson").value="";document.getElementById("issueParty").value="";document.getElementById("issuePurpose").value="";if(document.getElementById("issueRemarks"))document.getElementById("issueRemarks").value="";document.getElementById("issueImeiCheck").checked=false;document.getElementById("issueDevicesContainer").innerHTML=""
+    
+    document.getElementById("issueItem").value="";document.getElementById("issueVersion").value="";document.getElementById("issueQty").value="";document.getElementById("issuePerson").value="";document.getElementById("issueParty").value="";document.getElementById("issuePurpose").value="";document.getElementById("issueRemarks").value="";
+    document.getElementById("issueLiveImeiContainer").innerHTML=`<p style="color:#888; font-style:italic; padding:5px;">Pehle Item Name aur Version select karein...</p>`;
 }
 
 function saveReturn(){
     let item=document.getElementById("returnItem").value.trim(),version=document.getElementById("returnVersion").value.trim(),qty=parseInt(document.getElementById("returnQty").value)||0,person=document.getElementById("returnPerson").value.trim(),party=document.getElementById("returnParty").value.trim(),status=document.getElementById("returnStatus").value,date=document.getElementById("returnDate").value,remarks=document.getElementById("returnRemarks").value.trim();
     if(!item||qty<=0){alert("Sahi Data Daalein");return}
+    
     let devices = [];
     if(document.getElementById("returnImeiCheck").checked){
         devices = collectDeviceDetails("returnDevicesContainer");
     }
     db.ref("store_returns").push({item:item,version:version,qty:qty,person:person,party:party,status:status,date:date,remarks:remarks,devices:devices});
+    
     document.getElementById("returnItem").value="";document.getElementById("returnVersion").value="";document.getElementById("returnQty").value="";document.getElementById("returnPerson").value="";document.getElementById("returnParty").value="";document.getElementById("returnRemarks").value="";document.getElementById("returnImeiCheck").checked=false;document.getElementById("returnDevicesContainer").innerHTML=""
 }
 
-function getLiveItemBalance(n,v){
-    let e=Object.values(entryData).filter(x=>x.item===n&&x.version===v).reduce((a,b)=>a+(parseInt(b.qty)||0),0),p=Object.values(receivedData).filter(x=>x.item===n&&x.version===v).reduce((a,b)=>a+(parseInt(b.qty)||0),0),i=Object.values(issueData).filter(x=>x.item===n&&x.version===v).reduce((a,b)=>a+(parseInt(b.qty)||0),0),r=Object.values(returnData).filter(x=>x.item===n&&x.version===v&&x.status==="Ok").reduce((a,b)=>a+(parseInt(b.qty)||0),0);
-    return e+p-i+r
+function openEditMasterModal(itemName, version) {
+    if(!checkSecurePassword()) return; // Password Validation Added
+    document.getElementById("oldItemNameHidden").value = itemName;
+    document.getElementById("oldVersionHidden").value = version;
+    document.getElementById("editModalItemName").value = itemName;
+    document.getElementById("editModalVersion").value = version;
+    document.getElementById("editMasterModal").style.display = "block";
+}
+
+function closeEditMasterModal() {
+    document.getElementById("editMasterModal").style.display = "none";
+}
+
+function submitGlobalItemEdit() {
+    let oldItem = document.getElementById("oldItemNameHidden").value;
+    let oldVersion = document.getElementById("oldVersionHidden").value;
+    let newItem = document.getElementById("editModalItemName").value.trim();
+    let newVersion = document.getElementById("editModalVersion").value.trim();
+
+    if(!newItem || !newVersion) {
+        alert("Fields empty nahi ho sakte!");
+        return;
+    }
+    if(!confirm("Kya aap sure hain sabhi logs ko ek sath edit karna hai?")) return;
+
+    let updates = {};
+    const applyUpd = (data, node) => {
+        Object.entries(data).forEach(([k, v]) => {
+            if(v.item === oldItem && v.version === oldVersion) {
+                updates[`/${node}/${k}/item`] = newItem;
+                updates[`/${node}/${k}/version`] = newVersion;
+            }
+        });
+    };
+    applyUpd(entryData, "store_entries");
+    applyUpd(receivedData, "store_received");
+    applyUpd(issueData, "store_issues");
+    applyUpd(returnData, "store_returns");
+
+    db.ref().update(updates).then(() => {
+        alert("Sabhi logs live update ho gaye hain!");
+        closeEditMasterModal();
+    });
 }
 
 function renderTables(){
     let rb=document.querySelector("#reportTable tbody");rb.innerHTML="";
     let itemsMap=new Set();
-    
-    // Sabhi available items list banana master aur data se
-    Object.values(materialMasterData).forEach(x=>{if(x.item&&x.version)itemsMap.add(x.item+"|||"+x.version)});
     cl=o=>Object.values(o).forEach(x=>{if(x.item&&x.version)itemsMap.add(x.item+"|||"+x.version)});
     cl(entryData);cl(receivedData);cl(issueData);cl(returnData);
-    
     let idx=1;
     itemsMap.forEach(key=>{
         let[n,v]=key.split("|||"),
@@ -572,22 +671,6 @@ function renderTables(){
         r=Object.values(returnData).filter(x=>x.item===n&&x.version===v&&x.status==="Ok").reduce((a,b)=>a+(parseInt(b.qty)||0),0),
         bal=e+p-i+r,
         rem=Object.values(entryData).find(x=>x.item===n&&x.version===v&&x.remarks)?.remarks||"";
-        
-        // --- IMEI In / Out Advanced Logic ---
-        let totalInIMEIs = [];
-        Object.values(entryData).filter(x=>x.item===n&&x.version===v&&x.devices).forEach(x=>totalInIMEIs = totalInIMEIs.concat(x.devices));
-        Object.values(receivedData).filter(x=>x.item===n&&x.version===v&&x.devices).forEach(x=>totalInIMEIs = totalInIMEIs.concat(x.devices));
-        
-        let outIMEIs = new Set();
-        Object.values(issueData).filter(x=>x.item===n&&x.version===v&&x.devices).forEach(x=>x.devices.forEach(d=>outIMEIs.add(d.serial)));
-        Object.values(returnData).filter(x=>x.item===n&&x.version===v&&x.status==="Faulty"&&x.devices).forEach(x=>x.devices.forEach(d=>outIMEIs.add(d.serial)));
-        
-        // Filter out existing IMEIs
-        let currentAvailableIMEIs = totalInIMEIs.filter(d => !outIMEIs.has(d.serial));
-        let imeiCellHtml = "-";
-        if(currentAvailableIMEIs.length > 0){
-            imeiCellHtml = currentAvailableIMEIs.map(d => `<span class="imei-pill" title="Imei1: ${d.imei1 || '-'}, Imei2: ${d.imei2 || '-'}">${d.serial}</span>`).join(" ");
-        }
         
         let datesList = [];
         Object.values(entryData).filter(x=>x.item===n&&x.version===v&&x.date).forEach(x=>datesList.push(new Date(x.date)));
@@ -606,7 +689,13 @@ function renderTables(){
             latestDateStr = `${dd}-${mm}-${yyyy}`;
         }
 
-        rb.innerHTML+=`<tr data-date="${rawDateAttr}"><td>${idx++}</td><td><strong>${n}</strong></td><td>${v}</td><td>${e}</td><td>${p}</td><td>${i}</td><td>${r}</td><td><span style="color:${bal<5?"red":"green"};font-weight:bold">${bal}</span></td><td>${imeiCellHtml}</td><td>${latestDateStr}</td><td>${rem}</td></tr>`
+        let escN = n.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        let escV = v.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        
+        let availablePool = getLiveStockPool(n, v);
+        let liveDetailsBtn = availablePool.length > 0 ? `<button class="detailsBtn" onclick="viewLiveReportPool('${escN}', '${escV}')">Get Details</button>` : `-`;
+
+        rb.innerHTML+=`<tr data-date="${rawDateAttr}"><td>${idx++}</td><td><strong>${n}</strong></td><td>${v}</td><td>${e}</td><td>${p}</td><td>${i}</td><td>${r}</td><td><span style="color:${bal<5?"red":"green"};font-weight:bold">${bal}</span></td><td>${latestDateStr}</td><td>${rem}</td><td>${liveDetailsBtn}</td><td><button class="editBtn" onclick="openEditMasterModal('${escN}', '${escV}')">Edit</button></td></tr>`
     });
     renderSimpleTable(entryData,"#entryTable tbody","entry","store_entries");
     renderSimpleTable(receivedData,"#receivedTable tbody","received","store_received");
@@ -621,18 +710,15 @@ function renderSimpleTable(obj,sel,type,node){
         let r=`<tr data-date="${item.date||''}"><td>${idx++}</td>`;
         let formattedDate = formatDateDDMMYYYY(item.date);
         let hasDetails = item.devices && item.devices.length > 0;
+        let detailsBtn = hasDetails ? `<button class="detailsBtn" onclick="viewDetails('${type}','${k}')">Get Details</button>` : `-`;
         
-        if(type==="entry") {
-            r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${formattedDate}</td><td>${item.remarks||""}</td><td>`+(hasDetails?`<button class="detailsBtn" onclick="viewDetails('entry','${k}')">Get Details</button>`:`-`)+`</td>`;
-        }
-        else if(type==="received") {
-            r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.billNumber||""}</td><td>${item.supplierName||""}</td><td>${formattedDate}</td><td>`+(hasDetails?`<button class="detailsBtn" onclick="viewDetails('received','${k}')">Get Details</button>`:`-`)+`</td>`;
-        }
+        if(type==="entry")r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${formattedDate}</td><td>${item.remarks||""}</td><td>${detailsBtn}</td>`;
+        else if(type==="received")r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.billNumber||""}</td><td>${item.supplierName||""}</td><td>${formattedDate}</td><td>${detailsBtn}</td>`;
         else if(type==="issue") {
-            r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.person||""}</td><td>${item.party||""}</td><td>${item.purpose||""}</td><td>${item.remarks||""}</td><td>${formattedDate}</td><td>`+(hasDetails?`<button class="detailsBtn" onclick="viewDetails('issue','${k}')">Get Details</button>`:`-`)+`</td>`;
+            r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.person||""}</td><td>${item.party||""}</td><td>${item.purpose||""}</td><td>${item.remarks||""}</td><td>${formattedDate}</td><td>${detailsBtn}</td>`;
         }
         else if(type==="return") {
-            r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.person||""}</td><td>${item.party||""}</td><td>${item.status}</td><td>${formattedDate}</td><td>`+(hasDetails?`<button class="detailsBtn" onclick="viewDetails('return','${k}')">Get Details</button>`:`-`)+`</td>`;
+            r+=`<td>${item.item}</td><td>${item.version}</td><td>${item.qty}</td><td>${item.person||""}</td><td>${item.party||""}</td><td>${item.status}</td><td>${formattedDate}</td><td>${detailsBtn}</td>`;
         }
         
         r+=`<td><button class="deleteBtn" onclick="deleteItem('${node}','${k}')">Delete</button></td></tr>`;
@@ -664,9 +750,9 @@ function viewDetails(type, key) {
     else if(type === 'received') record = receivedData[key];
     else if(type === 'issue') record = issueData[key];
     else if(type === 'return') record = returnData[key];
-    
+
     let body = document.getElementById("modalBody");
-    document.getElementById("modalTitle").innerText = `Device Identifiers for: ${record.item} (${record.version})`;
+    document.getElementById("modalTitle").innerText = `Log Identifiers for: ${record.item} (${record.version})`;
     body.innerHTML = "";
     
     if(record && record.devices && record.devices.length > 0) {
@@ -677,7 +763,26 @@ function viewDetails(type, key) {
         tableHtml += `</tbody></table>`;
         body.innerHTML = tableHtml;
     } else {
-        body.innerHTML = "<p style='color:red;'>No Serial/IMEI details found for this record.</p>";
+        body.innerHTML = "<p style='color:red;'>No Serial/IMEI details found for this log.</p>";
+    }
+    document.getElementById("detailsModal").style.display = "block";
+}
+
+function viewLiveReportPool(itemName, version) {
+    let pool = getLiveStockPool(itemName, version);
+    let body = document.getElementById("modalBody");
+    document.getElementById("modalTitle").innerText = `Live Available Pool for: ${itemName} (${version})`;
+    body.innerHTML = "";
+
+    if(pool.length > 0) {
+        let tableHtml = `<table><thead><tr><th>#</th><th>Serial No</th><th>IMEI 1</th><th>IMEI 2</th></tr></thead><tbody>`;
+        pool.forEach((d, idx) => {
+            tableHtml += `<tr><td>${idx+1}</td><td>${d.serial}</td><td>${d.imei1 || '-'}</td><td>${d.imei2 || '-'}</td></tr>`;
+        });
+        tableHtml += `</tbody></table>`;
+        body.innerHTML = tableHtml;
+    } else {
+        body.innerHTML = "<p style='color:red;'>No Current Live Serial/IMEI details found inside store.</p>";
     }
     document.getElementById("detailsModal").style.display = "block";
 }
@@ -688,10 +793,13 @@ function closeModal() {
 
 window.onclick = function(event) {
     let m = document.getElementById("detailsModal");
+    let em = document.getElementById("editMasterModal");
     if (event.target == m) m.style.display = "none";
+    if (event.target == em) em.style.display = "none";
 }
 
 function deleteItem(node,k){
+    if(!checkSecurePassword()) return; // Password Validation Added
     if(!confirm("Delete record?"))return;
     db.ref(`${node}/${k}`).once("value",s=>{
         let d=s.val();
