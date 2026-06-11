@@ -115,8 +115,10 @@
         <h2>Stock Entry</h2>
         <div style="background:#f9f9f9;padding:10px;border-radius:5px;margin-bottom:15px;border:1px dashed #ccc">
             <strong>Single Entry:</strong><br>
-            <input type="text" id="entryItem" list="itemList" placeholder="Item Name">
-            <input type="text" id="entryVersion" list="versionList" placeholder="Version">
+            <input type="text" id="entryItem" list="itemList" placeholder="Item Name" onchange="handleItemSelectionChange('entryItem', 'entryVersion')">
+            <input type="text" id="entryVersion" list="entryVersionDL" placeholder="Version">
+            <datalist id="entryVersionDL"></datalist>
+            
             <input type="number" id="entryQty" placeholder="Qty" oninput="handleDeviceInputsTrigger('entryQty', 'entryImeiCheck', 'entryDevicesContainer')">
             <input type="date" id="entryDate">
             <input type="text" id="entryRemarks" placeholder="Remarks"><br>
@@ -152,8 +154,10 @@
 
     <div id="received" class="section">
         <h2>Received</h2>
-        <input type="text" id="recItem" list="itemList" placeholder="Item Name">
-        <input type="text" id="recVersion" list="versionList" placeholder="Version">
+        <input type="text" id="recItem" list="itemList" placeholder="Item Name" onchange="handleItemSelectionChange('recItem', 'recVersion')">
+        <input type="text" id="recVersion" list="recVersionDL" placeholder="Version">
+        <datalist id="recVersionDL"></datalist>
+        
         <input type="number" id="recQty" placeholder="Qty" oninput="handleDeviceInputsTrigger('recQty', 'recImeiCheck', 'recDevicesContainer')">
         <input type="text" id="billNumber" placeholder="Bill No">
         <input type="text" id="supplierName" placeholder="Supplier">
@@ -282,7 +286,6 @@
 </div>
 
 <datalist id="itemList"></datalist>
-<datalist id="versionList"></datalist>
 <datalist id="partyList"></datalist>
 <datalist id="locationList"></datalist>
 
@@ -290,6 +293,7 @@
 let currentGeneratedOTP = null;
 let issueRowCount = 0;
 let returnRowCount = 0;
+let globalCalculatedStock = {}; // Dynamic local configuration tracking balances
 
 if(!localStorage.getItem("store_user")) localStorage.setItem("store_user", "Sanchar");
 if(!localStorage.getItem("store_pass")) localStorage.setItem("store_pass", "Sanchar@171");
@@ -393,6 +397,7 @@ db.ref("deleted_backup").on("value",s=>{deletedBackup=s.val()||{}});
 function updateApp(){
     document.getElementById("syncStatus").innerText="● Cloud Sync Active";
     document.getElementById("syncStatus").style.color="green";
+    calculateStockPool();
     buildItemMaster();
     renderTables();
     
@@ -401,6 +406,62 @@ function updateApp(){
     }
     if(document.getElementById("returnRowsContainer").children.length === 0) {
         addReturnRow();
+    }
+}
+
+function calculateStockPool() {
+    globalCalculatedStock = {};
+    let itemsMap = new Set();
+    const cl = o => Object.values(o).forEach(x => { if (x.item && x.version) itemsMap.add(x.item.trim() + "|||" + x.version.trim()) });
+    cl(entryData); cl(receivedData); cl(issueData); cl(returnData);
+
+    itemsMap.forEach(key => {
+        let [n, v] = key.split("|||");
+        let e = Object.values(entryData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        let p = Object.values(receivedData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        let i = Object.values(issueData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        let r = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        let bal = e + p - i + r;
+        globalCalculatedStock[key] = bal;
+    });
+}
+
+function handleItemSelectionChange(itemInputId, targetDatalistId) {
+    let itemName = document.getElementById(itemInputId).value.trim();
+    let dl = document.getElementById(targetDatalistId + "DL");
+    if(!dl) return;
+    dl.innerHTML = "";
+    
+    if(!itemName) return;
+    
+    Object.keys(globalCalculatedStock).forEach(key => {
+        let [n, v] = key.split("|||");
+        if(n.toLowerCase() === itemName.toLowerCase()) {
+            dl.innerHTML += `<option value="${v}">`;
+        }
+    });
+}
+
+function handleRowItemSelectionChange(rowId) {
+    let rowObj = document.getElementById(rowId);
+    let itemInput = rowObj.querySelector(".issueItem, .returnItem");
+    let vDL = rowObj.querySelector(".classVersionDL");
+    if(!itemInput || !vDL) return;
+    
+    let itemName = itemInput.value.trim();
+    vDL.innerHTML = "";
+    
+    if(!itemName) return;
+    
+    Object.keys(globalCalculatedStock).forEach(key => {
+        let [n, v] = key.split("|||");
+        if(n.toLowerCase() === itemName.toLowerCase()) {
+            vDL.innerHTML += `<option value="${v}">`;
+        }
+    });
+    
+    if(rowId.startsWith("issueRow_")) {
+        loadRowLiveIMEIs(rowId);
     }
 }
 
@@ -496,8 +557,10 @@ function addIssueRow() {
         <div class="dynamic-item-row" id="${rowId}">
             <button class="remove-row-btn" onclick="removeDynamicRow('${rowId}')">X</button>
             <strong>Item Category Match:</strong><br>
-            <input type="text" class="issueItem" list="itemList" placeholder="Item Name" onchange="loadRowLiveIMEIs('${rowId}')" onkeyup="loadRowLiveIMEIs('${rowId}')">
-            <input type="text" class="issueVersion" list="versionList" placeholder="Version" onchange="loadRowLiveIMEIs('${rowId}')" onkeyup="loadRowLiveIMEIs('${rowId}')">
+            <input type="text" class="issueItem" list="itemList" placeholder="Item Name" onchange="handleRowItemSelectionChange('${rowId}')">
+            <input type="text" class="issueVersion" list="${rowId}_vDL" placeholder="Version" onchange="loadRowLiveIMEIs('${rowId}')" onkeyup="loadRowLiveIMEIs('${rowId}')">
+            <datalist id="${rowId}_vDL" class="classVersionDL"></datalist>
+            
             <input type="number" class="issueQty" placeholder="Issue Qty">
             
             <div style="margin:10px 4px; font-weight:bold; color:#002b5c;">
@@ -554,14 +617,32 @@ function saveGlobalIssues() {
     
     let validLogs = [];
     let hasError = false;
+    let errorMessage = "";
 
     rows.forEach(row => {
         let item = row.querySelector(".issueItem").value.trim();
         let version = row.querySelector(".issueVersion").value.trim();
         let qty = parseInt(row.querySelector(".issueQty").value) || 0;
         
-        if(!item || qty <= 0) {
+        if(!item || !version || qty <= 0) {
             hasError = true;
+            errorMessage = "Please enter valid Item Names, Versions and quantities greater than 0!";
+            return;
+        }
+
+        // Strictly Validate configuration match and dynamic stock balance values
+        let stockKey = item + "|||" + version;
+        let availableStock = globalCalculatedStock[stockKey] || 0;
+
+        if (!(stockKey in globalCalculatedStock)) {
+            hasError = true;
+            errorMessage = `Error: Item "${item}" with Version "${version}" does not exist in Stock Report master list!`;
+            return;
+        }
+
+        if (availableStock <= 0 || qty > availableStock) {
+            hasError = true;
+            errorMessage = `Error: Deficit Stock Configuration! "${item} (${version})" only has ${availableStock} units left. Cannot issue ${qty} units.`;
             return;
         }
 
@@ -579,7 +660,7 @@ function saveGlobalIssues() {
     });
 
     if(hasError) {
-        alert("Please enter valid Item Names and quantities greater than 0!");
+        alert(errorMessage);
         return;
     }
 
@@ -606,8 +687,10 @@ function addReturnRow() {
         <div class="dynamic-item-row" id="${rowId}">
             <button class="remove-row-btn" onclick="removeDynamicRow('${rowId}')">X</button>
             <strong>Return Log Details:</strong><br>
-            <input type="text" class="returnItem" list="itemList" placeholder="Item Name">
-            <input type="text" class="returnVersion" list="versionList" placeholder="Version">
+            <input type="text" class="returnItem" list="itemList" placeholder="Item Name" onchange="handleRowItemSelectionChange('${rowId}')">
+            <input type="text" class="returnVersion" list="${rowId}_vDL" placeholder="Version">
+            <datalist id="${rowId}_vDL" class="classVersionDL"></datalist>
+            
             <input type="number" class="returnQty" placeholder="Qty" oninput="handleDeviceInputsTrigger('${rowId}_qty', '${rowId}_check', '${rowId}_container')" id="${rowId}_qty">
             <br>
             <label class="imei-toggle-wrap">
@@ -636,6 +719,7 @@ function saveGlobalReturns() {
 
     let validLogs = [];
     let hasError = false;
+    let errorMessage = "";
 
     rows.forEach(row => {
         let item = row.querySelector(".returnItem").value.trim();
@@ -643,8 +727,17 @@ function saveGlobalReturns() {
         let qty = parseInt(row.querySelector(".returnQty").value) || 0;
         let rowId = row.id;
 
-        if(!item || qty <= 0) {
+        if(!item || !version || qty <= 0) {
             hasError = true;
+            errorMessage = "Please provide valid Item configuration fields and quantities!";
+            return;
+        }
+
+        // Only allow returns for configuration keys that actually exist in the master stock layout
+        let stockKey = item + "|||" + version;
+        if (!(stockKey in globalCalculatedStock)) {
+            hasError = true;
+            errorMessage = `Error: Item "${item}" with Version "${version}" does not match any registered product configuration in Stock Report database!`;
             return;
         }
 
@@ -657,7 +750,7 @@ function saveGlobalReturns() {
     });
 
     if(hasError) {
-        alert("Please provide valid Item configuration fields and quantities!");
+        alert(errorMessage);
         return;
     }
 
@@ -693,15 +786,17 @@ function buildItemMaster(){
     };
     pr(entryData);pr(receivedData);pr(issueData);pr(returnData);
     
-    let iL=document.getElementById("itemList"),vL=document.getElementById("versionList");
+    let iL=document.getElementById("itemList");
     let pL=document.getElementById("partyList"),lL=document.getElementById("locationList");
     
-    iL.innerHTML=""; vL.innerHTML=""; pL.innerHTML=""; lL.innerHTML="";
-    let itemsAdded=new Set(),versionsAdded=new Set();
+    iL.innerHTML=""; pL.innerHTML=""; lL.innerHTML="";
+    let itemsAdded=new Set();
     
     Object.values(m).forEach(x=>{
-        if(!itemsAdded.has(x.i)){iL.innerHTML+=`<option value="${x.i}">`;itemsAdded.add(x.i)}
-        if(!versionsAdded.has(x.v)){vL.innerHTML+=`<option value="${x.v}">`;versionsAdded.add(x.v)}
+        if(!itemsAdded.has(x.i.toLowerCase())){
+            iL.innerHTML+=`<option value="${x.i}">`;
+            itemsAdded.add(x.i.toLowerCase());
+        }
     });
     
     parties.forEach(p => { pL.innerHTML += `<option value="${p}">`; });
@@ -710,7 +805,7 @@ function buildItemMaster(){
 
 function saveStockEntry(){
     let item=document.getElementById("entryItem").value.trim(),version=document.getElementById("entryVersion").value.trim(),qty=parseInt(document.getElementById("entryQty").value)||0,date=document.getElementById("entryDate").value,remarks=document.getElementById("entryRemarks").value.trim();
-    if(!item||qty<=0){alert("Invalid Data Entered");return}
+    if(!item||!version||qty <= 0){alert("Invalid Data Entered");return}
     
     let devices = [];
     if(document.getElementById("entryImeiCheck").checked){
@@ -733,7 +828,7 @@ function uploadCSVEntries(){
             let cols=lines[i].split(",");
             if(cols.length>=3){
                 let item=cols[0].replace(/"/g,"").trim(),version=cols[1].replace(/"/g,"").trim(),qty=parseInt(cols[2])||0,date=cols[3]?cols[3].replace(/"/g,"").trim():new Date().toISOString().split('T')[0],remarks=cols[4]?cols[4].replace(/"/g,"").trim():"";
-                if(item&&qty>0){db.ref("store_entries").push({item:item,version:version,qty:qty,date:date,remarks:remarks,devices:[]});count++}
+                if(item&&version&&qty>0){db.ref("store_entries").push({item:item,version:version,qty:qty,date:date,remarks:remarks,devices:[]});count++}
             }
         }
         alert(count+" Entries uploaded successfully!");fileInput.value=""
@@ -743,7 +838,7 @@ function uploadCSVEntries(){
 
 function saveReceived(){
     let item=document.getElementById("recItem").value.trim(),version=document.getElementById("recVersion").value.trim(),qty=parseInt(document.getElementById("recQty").value)||0,billNumber=document.getElementById("billNumber").value.trim(),supplierName=document.getElementById("supplierName").value.trim(),date=document.getElementById("recDate").value,remarks=document.getElementById("recRemarks").value.trim();
-    if(!item||qty<=0){alert("Invalid Data Entered");return}
+    if(!item||!version||qty <= 0){alert("Invalid Data Entered");return}
     
     let devices = [];
     if(document.getElementById("recImeiCheck").checked){
@@ -800,18 +895,17 @@ function submitGlobalItemEdit() {
 
 function renderTables(){
     let rb=document.querySelector("#reportTable tbody");rb.innerHTML="";
-    let itemsMap=new Set();
-    cl=o=>Object.values(o).forEach(x=>{if(x.item&&x.version)itemsMap.add(x.item+"|||"+x.version)});
-    cl(entryData);cl(receivedData);cl(issueData);cl(returnData);
     let idx=1;
-    itemsMap.forEach(key=>{
-        let[n,v]=key.split("|||"),
-        e=Object.values(entryData).filter(x=>x.item===n&&x.version===v).reduce((a,b)=>a+(parseInt(b.qty)||0),0),
-        p=Object.values(receivedData).filter(x=>x.item===n&&x.version===v).reduce((a,b)=>a+(parseInt(b.qty)||0),0),
-        i=Object.values(issueData).filter(x=>x.item===n&&x.version===v).reduce((a,b)=>a+(parseInt(b.qty)||0),0),
-        r=Object.values(returnData).filter(x=>x.item===n&&x.version===v&&x.status==="Ok").reduce((a,b)=>a+(parseInt(b.qty)||0),0),
-        bal=e+p-i+r,
-        rem=Object.values(entryData).find(x=>x.item===n&&x.version===v&&x.remarks)?.remarks||"";
+    
+    Object.keys(globalCalculatedStock).forEach(key => {
+        let [n, v] = key.split("|||");
+        let bal = globalCalculatedStock[key];
+        
+        let e = Object.values(entryData).filter(x=>x.item===n&&x.version===v).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
+        let p = Object.values(receivedData).filter(x=>x.item===n&&x.version===v).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
+        let i = Object.values(issueData).filter(x=>x.item===n&&x.version===v).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
+        let r = Object.values(returnData).filter(x=>x.item===n&&x.version===v&&x.status==="Ok").reduce((a,b)=>a+(parseInt(b.qty)||0),0);
+        let rem=Object.values(entryData).find(x=>x.item===n&&x.version===v&&x.remarks)?.remarks||"";
         
         let datesList = [];
         Object.values(entryData).filter(x=>x.item===n&&x.version===v&&x.date).forEach(x=>datesList.push(new Date(x.date)));
@@ -836,6 +930,7 @@ function renderTables(){
         let liveDetailsBtn = availablePool.length > 0 ? `<button class="detailsBtn" onclick="viewLiveReportPool('${escN}', '${escV}')">Get Details</button>` : `-`;
         rb.innerHTML+=`<tr data-date="${rawDateAttr}"><td>${idx++}</td><td><strong>${n}</strong></td><td>${v}</td><td>${e}</td><td>${p}</td><td>${i}</td><td>${r}</td><td><span style="color:${bal<5?"red":"green"};font-weight:bold">${bal}</span></td><td>${latestDateStr}</td><td>${rem}</td><td>${liveDetailsBtn}</td><td><button class="editBtn" onclick="openEditMasterModal('${escN}', '${escV}')">Edit</button></td></tr>`
     });
+    
     renderSimpleTable(entryData,"#entryTable tbody","entry","store_entries");
     renderSimpleTable(receivedData,"#receivedTable tbody","received","store_received");
     renderSimpleTable(issueData,"#issueTable tbody","issue","store_issues");
