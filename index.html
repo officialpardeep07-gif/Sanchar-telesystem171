@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Sanchar Telesystems Limited.Org</title>
+    <title>Sanchar Telesystems Limited</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -1584,7 +1584,68 @@ function searchTable(inpt,tId){
     let f=inpt.value.toLowerCase();
     document.querySelectorAll(`#${tId} tbody tr`).forEach(r=>{r.style.display=r.innerText.toLowerCase().includes(f)?"":"none"})
 }
+function importBulkImeisFromExcel(qtyInputId, checkId, containerId, fileInput) {
+    let file = fileInput.files[0];
+    if (!file) return;
 
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let text = e.target.result;
+        let lines = text.split(/\r?\n/);
+        let deviceList = [];
+
+        // Check if the first row contains header text like "serial" or "imei" to skip it
+        let startIndex = 0;
+        if (lines[0] && (lines[0].toLowerCase().includes("serial") || lines[0].toLowerCase().includes("imei"))) {
+            startIndex = 1; 
+        }
+
+        // Parse rows line by line
+        for (let i = startIndex; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            let cols = lines[i].split(",");
+            let serial = cols[0] ? cols[0].trim() : "";
+            let imei1 = cols[1] ? cols[1].trim() : "";
+            let imei2 = cols[2] ? cols[2].trim() : "";
+
+            if (serial || imei1 || imei2) {
+                deviceList.push({ serial: serial, imei1: imei1, imei2: imei2 });
+            }
+        }
+
+        if (deviceList.length === 0) {
+            alert("No valid data found in the Excel/CSV file!");
+            return;
+        }
+
+        // 1. Automatically update total Quantity field based on file rows count
+        document.getElementById(qtyInputId).value = deviceList.length;
+
+        // 2. Turn on the conditional checkbox to enable the container
+        document.getElementById(checkId).checked = true;
+
+        // 3. Render and auto-populate all the input fields inside the target container
+        let container = document.getElementById(containerId);
+        container.innerHTML = "<strong>Bulk Loaded Device Details (Serial & IMEIs):</strong><br>";
+
+        deviceList.forEach((dev, index) => {
+            container.innerHTML += `
+                <div class="device-entry-row" data-index="${index}">
+                    <span>#${index + 1}</span>
+                    <input type="text" class="devSerial" placeholder="Serial No" value="${dev.serial}" required>
+                    <input type="text" class="devImei1" placeholder="IMEI 1" value="${dev.imei1}">
+                    <input type="text" class="devImei2" placeholder="IMEI 2" value="${dev.imei2}">
+                </div>`;
+        });
+
+        alert(`Successfully imported ${deviceList.length} serials/IMEIs! You can now fill out the remaining form details and save.`);
+        
+        // Reset the file selector input so it allows uploading the same file again if modified
+        fileInput.value = "";
+    };
+    reader.readAsText(file);
+}
+    
 function downloadCSV(tId,fName){
     let csv=[];
     document.querySelectorAll(`#${tId} tr`).forEach(r=>{
