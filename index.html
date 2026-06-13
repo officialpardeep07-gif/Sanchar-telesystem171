@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Sanchar Store</title>
+    <title>Sanchar Telesystems Limited.Org</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -909,53 +909,82 @@ function saveStockEntry(){
     document.getElementById("entryImeiCheck").checked=false;document.getElementById("entryDevicesContainer").innerHTML="";
 }
 
-function uploadCSVEntries(){
-    let fileInput=document.getElementById("csvFileInput");
-    if(!fileInput.files.length){alert("Please select a CSV file first");return}
-    let file=fileInput.files[0],reader=new FileReader();
-    reader.onload=function(e){
-        let text=e.target.result,lines=text.split("\n"),count=0;
-        for(let i=1;i<lines.length;i++){
-            if(!lines[i].trim()) continue;
-            let cols=lines[i].split(",");
-            if(cols.length>=3){
-                let item=cols[0].replace(/"/g,"").trim();
-                let version=cols[1].replace(/"/g,"").trim();
-                let qty=parseInt(cols[2])||0;
-                let date=cols[3]?cols[3].replace(/"/g,"").trim():new Date().toISOString().split('T')[0];
-                let remarks=cols[4]?cols[4].replace(/"/g,"").trim():"";
-                
-                let devices = [];
-                let sRaw = cols[5] ? cols[5].replace(/"/g,"").trim() : "";
-                let i1Raw = cols[6] ? cols[6].replace(/"/g,"").trim() : "";
-                let i2Raw = cols[7] ? cols[7].replace(/"/g,"").trim() : "";
-                
-                if(sRaw) {
-                    let sArr = sRaw.split("|");
-                    let i1Arr = i1Raw.split("|");
-                    let i2Arr = i2Raw.split("|");
-                    for(let k=0; k<sArr.length; k++) {
-                        if(sArr[k].trim()) {
-                            devices.push({
-                                serial: sArr[k].trim(),
-                                imei1: i1Arr[k] ? i1Arr[k].trim() : "",
-                                imei2: i2Arr[k] ? i2Arr[k].trim() : ""
-                            });
-                        }
-                    }
-                }
-                
-                if(item&&version&&qty>0){
-                    db.ref("store_entries").push({item:item,version:version,qty:qty,date:date,remarks:remarks,devices:devices});
-                    count++;
-                }
+function uploadCSVEntries() {
+    let item = document.getElementById("entryItem").value.trim();
+    let version = document.getElementById("entryVersion").value.trim();
+    let date = document.getElementById("entryDate").value;
+    let remarks = document.getElementById("entryRemarks").value.trim();
+    let fileInput = document.getElementById("csvFileInput");
+
+    // Validations
+    if (!item || !version || !date) {
+        alert("Kripya pehle Item Name, Version aur Date form me fill karein!");
+        return;
+    }
+    if (fileInput.files.length === 0) {
+        alert("Kripya Serial/IMEI ke liye ek CSV file select karein!");
+        return;
+    }
+
+    let file = fileInput.files[0];
+    let reader = new FileReader();
+
+    reader.onload = function(e) {
+        let text = e.target.result;
+        let lines = text.split(/\r?\n/);
+        let devicesList = [];
+
+        // Pehli line agar Header (Serial, IMEI1, IMEI2) hai toh index 1 se start karein
+        let startIndex = 0;
+        if (lines[0].toLowerCase().includes("serial") || lines[0].toLowerCase().includes("imei")) {
+            startIndex = 1;
+        }
+
+        for (let i = startIndex; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            let cols = lines[i].split(",");
+            
+            let serial = cols[0] ? cols[0].trim() : "";
+            let imei1 = cols[1] ? cols[1].trim() : "";
+            let imei2 = cols[2] ? cols[2].trim() : "";
+
+            if (serial || imei1 || imei2) {
+                devicesList.push({ serial: serial, imei1: imei1, imei2: imei2 });
             }
         }
-        alert(count+" Stock Records with Identifier lists successfully tracked!");
-        fileInput.value="";
+
+        if (devicesList.length === 0) {
+            alert("File me koi valid Serial number ya IMEI nahi mila!");
+            return;
+        }
+
+        // Auto Qty update jitne devices list me upload hue hain
+        let qty = devicesList.length;
+
+        let logData = {
+            item: item,
+            version: version,
+            qty: qty,
+            date: date,
+            remarks: remarks ? remarks + " (Uploaded via Excel)" : "Uploaded via Excel",
+            devices: devicesList
+        };
+
+        // Firebase me push save entry
+        db.ref("store_entries").push(logData).then(() => {
+            alert(`Fast Upload Successful! Total ${qty} devices stock entry me add ho gaye hain.`);
+            // Form aur file clear karna
+            fileInput.value = "";
+            document.getElementById("entryQty").value = "";
+            document.getElementById("entryDevicesContainer").innerHTML = "";
+        }).catch((err) => {
+            alert("Database me save karte waqt error aaya: " + err.message);
+        });
     };
-    reader.readAsText(file)
+
+    reader.readAsText(file);
 }
+
 function saveReceived(){
     let item=document.getElementById("recItem").value.trim(),version=document.getElementById("recVersion").value.trim(),qty=parseInt(document.getElementById("recQty").value)||0,billNumber=document.getElementById("billNumber").value.trim(),supplierName=document.getElementById("supplierName").value.trim(),date=document.getElementById("recDate").value,remarks=document.getElementById("recRemarks").value.trim();
     if(!item||!version||qty <= 0){alert("Invalid Data Entered");return}
@@ -969,52 +998,81 @@ function saveReceived(){
     document.getElementById("recItem").value="";document.getElementById("recVersion").value="";document.getElementById("recQty").value="";document.getElementById("billNumber").value="";document.getElementById("supplierName").value="";document.getElementById("recRemarks").value="";
     document.getElementById("recImeiCheck").checked=false;document.getElementById("recDevicesContainer").innerHTML="";
     }
-    function uploadCSVReceived(){
-    let fileInput=document.getElementById("csvRecFileInput");
-    if(!fileInput.files.length){alert("Please select a Received CSV file first");return}
-    let file=fileInput.files[0],reader=new FileReader();
-    reader.onload=function(e){
-        let text=e.target.result,lines=text.split("\n"),count=0;
-        for(let i=1;i<lines.length;i++){
-            if(!lines[i].trim()) continue;
-            let cols=lines[i].split(",");
-            if(cols.length>=3){
-                let item=cols[0].replace(/"/g,"").trim();
-                let version=cols[1].replace(/"/g,"").trim();
-                let qty=parseInt(cols[2])||0;
-                let bill = cols[3] ? cols[3].replace(/"/g,"").trim() : "";
-                let supplier = cols[4] ? cols[4].replace(/"/g,"").trim() : "";
-                let date=cols[5]?cols[5].replace(/"/g,"").trim():new Date().toISOString().split('T')[0];
-                let remarks=cols[6]?cols[6].replace(/"/g,"").trim():"";
-                
-                let devices = [];
-                let sRaw = cols[7] ? cols[7].replace(/"/g,"").trim() : "";
-                let i1Raw = cols[8] ? cols[8].replace(/"/g,"").trim() : "";
-                let i2Raw = cols[9] ? cols[9].replace(/"/g,"").trim() : "";
-                
-                if(sRaw) {
-                    let sArr = sRaw.split("|");
-                    let i1Arr = i1Raw.split("|");
-                    let i2Arr = i2Raw.split("|");
-                    for(let k=0; k<sArr.length; k++) {
-                        if(sArr[k].trim()) {
-                            devices.push({
-                                serial: sArr[k].trim(),
-                                imei1: i1Arr[k] ? i1Arr[k].trim() : "",
-                                imei2: i2Arr[k] ? i2Arr[k].trim() : ""
-                            });
-                        }
-                    }
-                }
-                if(item&&version&&qty>0){
-                    db.ref("store_received").push({item:item,version:version,qty:qty,billNumber:bill,supplierName:supplier,date:date,remarks:remarks,devices:devices});
-                    count++;
-                }
+    function uploadCSVReceived() {
+    let item = document.getElementById("recItem").value.trim();
+    let version = document.getElementById("recVersion").value.trim();
+    let billNumber = document.getElementById("billNumber").value.trim();
+    let supplierName = document.getElementById("supplierName").value.trim();
+    let date = document.getElementById("recDate").value;
+    let remarks = document.getElementById("recRemarks").value.trim();
+    let fileInput = document.getElementById("csvRecFileInput");
+
+    // Validations
+    if (!item || !version || !date) {
+        alert("Kripya pehle Received Item Name, Version aur Date form me fill karein!");
+        return;
+    }
+    if (fileInput.files.length === 0) {
+        alert("Kripya Serial/IMEI ke liye ek CSV file select karein!");
+        return;
+    }
+
+    let file = fileInput.files[0];
+    let reader = new FileReader();
+
+    reader.onload = function(e) {
+        let text = e.target.result;
+        let lines = text.split(/\r?\n/);
+        let devicesList = [];
+
+        let startIndex = 0;
+        if (lines[0].toLowerCase().includes("serial") || lines[0].toLowerCase().includes("imei")) {
+            startIndex = 1;
+        }
+
+        for (let i = startIndex; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            let cols = lines[i].split(",");
+            
+            let serial = cols[0] ? cols[0].trim() : "";
+            let imei1 = cols[1] ? cols[1].trim() : "";
+            let imei2 = cols[2] ? cols[2].trim() : "";
+
+            if (serial || imei1 || imei2) {
+                devicesList.push({ serial: serial, imei1: imei1, imei2: imei2 });
             }
         }
-        alert(count+" Purchase Records appended successfully!");
-        fileInput.value="";
+
+        if (devicesList.length === 0) {
+            alert("File me koi valid Serial number ya IMEI nahi mila!");
+            return;
+        }
+
+        // Qty automatic excel data ki row count par set hogi
+        let qty = devicesList.length;
+
+        let logData = {
+            item: item,
+            version: version,
+            qty: qty,
+            billNumber: billNumber || "-",
+            supplierName: supplierName || "-",
+            date: date,
+            remarks: remarks ? remarks + " (Received via Excel)" : "Received via Excel",
+            devices: devicesList
+        };
+
+        // Firebase store_received node me push save
+        db.ref("store_received").push(logData).then(() => {
+            alert(`Fast Received Upload Successful! Total ${qty} items save ho gaye hain.`);
+            fileInput.value = "";
+            document.getElementById("recQty").value = "";
+            document.getElementById("recDevicesContainer").innerHTML = "";
+        }).catch((err) => {
+            alert("Error: " + err.message);
+        });
     };
+
     reader.readAsText(file);
 }
 /* --- Row Editor Framework --- */
