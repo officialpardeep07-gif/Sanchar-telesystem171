@@ -128,10 +128,15 @@
             <input type="text" id="entryRemarks" placeholder="Remarks"><br>
             
             <label class="imei-toggle-wrap">
-                <input type="checkbox" id="entryImeiCheck" onchange="handleDeviceInputsTrigger('entryQty', 'entryImeiCheck', 'entryDevicesContainer')"> 
-                Enter Device Details Now (Serial/IMEI)
-            </label>
-            <div id="entryDevicesContainer" style="margin-top:10px"></div>
+    <input type="checkbox" id="entryImeiCheck" onchange="handleDeviceInputsTrigger('entryQty', 'entryImeiCheck', 'entryDevicesContainer')"> 
+    Enter Device Details Now (Serial/IMEI)
+</label>
+<div style="margin: 8px 0; background: #eef7ff; padding: 10px; border-radius: 5px; border: 1px dashed #0066cc; display: inline-block;">
+    <strong>OR Import Serial/IMEI from Excel/CSV:</strong> 
+    <input type="file" id="bulkExcelEntryInput" accept=".csv" onchange="importBulkImeisFromExcel('entryQty', 'entryImeiCheck', 'entryDevicesContainer', this)">
+    <br><small style="color:#555;">Format: SerialNo, IMEI1, IMEI2 (First row can be headers)</small>
+</div>
+<div id="entryDevicesContainer" style="margin-top:10px"></div>
             <button class="saveBtn" onclick="saveStockEntry()">Save Entry</button>
         </div>
         <div style="background:#f9f9f9;padding:10px;border-radius:5px;margin-bottom:15px;border:1px dashed #ccc">
@@ -171,10 +176,15 @@
             <input type="text" id="recRemarks" placeholder="Remarks"><br>
             
             <label class="imei-toggle-wrap">
-                <input type="checkbox" id="recImeiCheck" onchange="handleDeviceInputsTrigger('recQty', 'recImeiCheck', 'recDevicesContainer')"> 
-                Enter Device Details Now (Serial/IMEI)
-            </label>
-            <div id="recDevicesContainer" style="margin-top:10px"></div>
+    <input type="checkbox" id="recImeiCheck" onchange="handleDeviceInputsTrigger('recQty', 'recImeiCheck', 'recDevicesContainer')"> 
+    Enter Device Details Now (Serial/IMEI)
+</label>
+<div style="margin: 8px 0; background: #fff4ee; padding: 10px; border-radius: 5px; border: 1px dashed #cc6600; display: inline-block;">
+    <strong>OR Import Serial/IMEI from Excel/CSV:</strong> 
+    <input type="file" id="bulkExcelRecInput" accept=".csv" onchange="importBulkImeisFromExcel('recQty', 'recImeiCheck', 'recDevicesContainer', this)">
+    <br><small style="color:#555;">Format: SerialNo, IMEI1, IMEI2 (First row can be headers)</small>
+</div>
+<div id="recDevicesContainer" style="margin-top:10px"></div>
             <button class="saveBtn" onclick="saveReceived()">Save Received</button>
         </div>
         <div style="background:#f9f9f9;padding:10px;border-radius:5px;margin-bottom:15px;border:1px dashed #ccc">
