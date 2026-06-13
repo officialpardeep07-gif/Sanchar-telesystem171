@@ -1099,44 +1099,60 @@ function submitRowDataEdit() {
     let key = document.getElementById("editKeyHidden").value;
     
     let upd = {
-        item: document.getElementById("editRowItem").value.trim(),
-        version: document.getElementById("editRowVersion").value.trim(),
-        qty: parseInt(document.getElementById("editRowQty").value) || 0,
-        date: document.getElementById("editRowDate").value,
-        remarks: document.getElementById("editRowRemarks").value.trim()
+        item: document.getElementById("editRowItem") ? document.getElementById("editRowItem").value.trim() : "",
+        version: document.getElementById("editRowVersion") ? document.getElementById("editRowVersion").value.trim() : "",
+        qty: document.getElementById("editRowQty") ? (parseInt(document.getElementById("editRowQty").value) || 0) : 0,
+        date: document.getElementById("editRowDate") ? document.getElementById("editRowDate").value : "",
+        remarks: document.getElementById("editRowRemarks") ? document.getElementById("editRowRemarks").value.trim() : ""
     };
 
-    if(!upd.item || !upd.version || upd.qty < 0) { alert("Invalid entries detected!"); return; }
+    if(!upd.item || !upd.version || upd.qty < 0) { 
+        alert("Invalid entries detected!"); 
+        return; 
+    }
 
     if(node === 'store_received') {
-        upd.billNumber = document.getElementById("editRowBill").value.trim();
-        upd.supplierName = document.getElementById("editRowSupplier").value.trim();
+        upd.billNumber = document.getElementById("editRowBill") ? document.getElementById("editRowBill").value.trim() : "";
+        upd.supplierName = document.getElementById("editRowSupplier") ? document.getElementById("editRowSupplier").value.trim() : "";
     } else if(node === 'store_issues') {
-        upd.person = document.getElementById("editRowPerson").value.trim();
-        upd.party = document.getElementById("editRowParty").value.trim();
-        upd.location = document.getElementById("editRowLocation").value.trim();
-        upd.purpose = document.getElementById("editRowPurpose").value.trim();
+        upd.person = document.getElementById("editRowPerson") ? document.getElementById("editRowPerson").value.trim() : "";
+        upd.party = document.getElementById("editRowParty") ? document.getElementById("editRowParty").value.trim() : "";
+        upd.location = document.getElementById("editRowLocation") ? document.getElementById("editRowLocation").value.trim() : "";
+        upd.purpose = document.getElementById("editRowPurpose") ? document.getElementById("editRowPurpose").value.trim() : "";
     } else if(node === 'store_returns') {
-        upd.person = document.getElementById("editRowPerson").value.trim();
-        upd.party = document.getElementById("editRowParty").value.trim();
-        upd.location = document.getElementById("editRowLocation").value.trim();
-        upd.status = document.getElementById("editRowStatus").value;
+        upd.person = document.getElementById("editRowPerson") ? document.getElementById("editRowPerson").value.trim() : "";
+        upd.party = document.getElementById("editRowParty") ? document.getElementById("editRowParty").value.trim() : "";
+        upd.location = document.getElementById("editRowLocation") ? document.getElementById("editRowLocation").value.trim() : "";
+        upd.status = document.getElementById("editRowStatus") ? document.getElementById("editRowStatus").value : "Ok";
     }
 
     let devices = [];
-    document.querySelectorAll("#editRowDevicesWrap .edit-dev-row").forEach(row => {
-        let s = row.querySelector(".eDevSerial").value.trim();
-        let i1 = row.querySelector(".eDevImei1").value.trim();
-        let i2 = row.querySelector(".eDevImei2").value.trim();
-        if(s || i1 || i2) {
-            devices.push({ serial: s, imei1: i1, imei2: i2 });
-        }
-    });
-    upd.devices = devices;
+    let devRows = document.querySelectorAll("#editRowDevicesWrap .edit-dev-row");
+    if(devRows.length > 0) {
+        devRows.forEach(row => {
+            let s = row.querySelector(".eDevSerial") ? row.querySelector(".eDevSerial").value.trim() : "";
+            let i1 = row.querySelector(".eDevImei1") ? row.querySelector(".eDevImei1").value.trim() : "";
+            let i2 = row.querySelector(".eDevImei2") ? row.querySelector(".eDevImei2").value.trim() : "";
+            if(s || i1 || i2) {
+                devices.push({ serial: s, imei1: i1, imei2: i2 });
+            }
+        });
+    }
+    
+    // Firebase doesn't accept empty arrays natively via update structures
+    upd.devices = devices.length > 0 ? devices : null;
 
-    db.ref(`${node}/${k}`).set(upd).then(() => {
+    db.ref(`${node}/${key}`).update(upd)
+    .then(() => {
         alert("Transaction log record updated successfully!");
         closeRowEditModal();
+        if(typeof updateApp === "function") {
+            updateApp(); // Interface refresh sync trigger
+        }
+    })
+    .catch((error) => {
+        console.error("Update failed:", error);
+        alert("Error saving updates: " + error.message);
     });
 }
 
@@ -1268,12 +1284,12 @@ function renderSummaryTable() {
     tbody.innerHTML = "";
     let idx = 1;
 
-    Object.entries(issueData).forEach(([issueKey, item]) => {
+    Object.values(issueData).forEach(item => {
         let formattedDate = formatDateDDMMYYYY(item.date);
         let purpose = item.purpose || "N/A";
         
         let deviceText = "-";
-        let statusBadge = `<span class="status-badge status-na" onclick="openDeviceHistoryPopup('${issueKey}')">N/A</span>`;
+        let statusBadge = `<span class="status-badge status-na">N/A</span>`;
 
         if(item.devices && item.devices.length > 0) {
             deviceText = item.devices.map(d => `S/N: ${d.serial}`).join(", ");
@@ -1286,15 +1302,14 @@ function renderSummaryTable() {
                     }
                 });
                 if(allReturned) {
-                    statusBadge = `<span class="status-badge status-returned" onclick="openDeviceHistoryPopup('${issueKey}')">Returned to Store</span>`;
+                    statusBadge = `<span class="status-badge status-returned">Returned (Wapas Aaya)</span>`;
                 } else {
-                    statusBadge = `<span class="status-badge status-party" onclick="openDeviceHistoryPopup('${issueKey}')">With Party (Active)</span>`;
+                    statusBadge = `<span class="status-badge status-party">With Party (Abhi Party ke Paas hai)</span>`;
                 }
-            } else {
-                statusBadge = `<span class="status-badge status-na" onclick="openDeviceHistoryPopup('${issueKey}')">Disposed (${purpose})</span>`;
             }
         }
 
+        // Fixed HTML row syntax tag: changed '<td data-purpose...' to '<tr data-purpose...'
         let rowHtml = `
             <tr data-purpose="${purpose}">
                 <td>${idx++}</td>
@@ -1304,12 +1319,13 @@ function renderSummaryTable() {
                 <td>${item.qty}</td>
                 <td>${item.party || "-"}</td>
                 <td><strong>${purpose}</strong></td>
-                <td style="font-size:12px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" class="tracking-link" onclick="openDeviceHistoryPopup('${issueKey}')" title="Click to track full device lifecycle">${deviceText}</td>
+                <td style="font-size:12px; max-width:250px; overflow:hidden; text-overflow:ellipsis;">${deviceText}</td>
                 <td>${statusBadge}</td>
             </tr>`;
         tbody.innerHTML += rowHtml;
     });
 }
+
 
 /* DETAILED LIFECYCLE TRACKING FUNCTION */
 function openDeviceHistoryPopup(issueKey) {
