@@ -1538,8 +1538,13 @@ function viewLiveReportPool(itemName, version) {
     document.getElementById("detailsModal").style.display = "block";
 }
 
-function closeModal() { document.getElementById("detailsModal").style.display = "none"; }
+function closeModal() {
+    if(document.getElementById("detailsModal")) {
+        document.getElementById("detailsModal").style.display = "none";
+    }
+}
 
+    
 window.onclick = function(event) {
     let m = document.getElementById("detailsModal");
     let em = document.getElementById("editMasterModal");
