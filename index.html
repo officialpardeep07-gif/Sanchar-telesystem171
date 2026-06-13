@@ -128,12 +128,18 @@
             <input type="text" id="entryRemarks" placeholder="Remarks"><br>
             
             <label class="imei-toggle-wrap">
-                <input type="checkbox" id="entryImeiCheck" onchange="handleDeviceInputsTrigger('entryQty', 'entryImeiCheck', 'entryDevicesContainer')"> 
-                Enter Device Details Now (Serial/IMEI)
-            </label>
-            <div id="entryDevicesContainer" style="margin-top:10px"></div>
-            <button class="saveBtn" onclick="saveStockEntry()">Save Entry</button>
-        </div>
+    <input type="checkbox" id="entryImeiCheck" onchange="handleDeviceInputsTrigger('entryQty', 'entryImeiCheck', 'entryDevicesContainer')"> 
+    Enter Device Details Now (Serial/IMEI)
+</label>
+<div id="entryDevicesContainer" style="margin-top:10px"></div>
+<div style="margin: 8px 4px; padding: 8px; background: #eef7ff; border-radius: 4px; border: 1px dashed #0066cc;">
+    <strong>Fast Upload (Optional Excel/CSV for Serials only):</strong> 
+    <input type="file" id="entryExcelSerialFile" accept=".csv" style="margin:0;">
+    <br><small style="color:#555;">Format: Column 1 = Serial, Column 2 = IMEI1, Column 3 = IMEI2 (No headers needed)</small>
+</div>
+<button class="saveBtn" onclick="saveStockEntry()">Save Entry</button>
+        
+</div>
         <div style="background:#f9f9f9;padding:10px;border-radius:5px;margin-bottom:15px;border:1px dashed #ccc">
             <strong>Bulk Serial/IMEI Upload for Existing Items (via Excel/CSV):</strong><br>
             <div class="file-input-wrapper"><input type="file" id="csvFileInput" accept=".csv"></div>
@@ -171,11 +177,17 @@
             <input type="text" id="recRemarks" placeholder="Remarks"><br>
             
             <label class="imei-toggle-wrap">
-                <input type="checkbox" id="recImeiCheck" onchange="handleDeviceInputsTrigger('recQty', 'recImeiCheck', 'recDevicesContainer')"> 
-                Enter Device Details Now (Serial/IMEI)
-            </label>
-            <div id="recDevicesContainer" style="margin-top:10px"></div>
-            <button class="saveBtn" onclick="saveReceived()">Save Received</button>
+    <input type="checkbox" id="recImeiCheck" onchange="handleDeviceInputsTrigger('recQty', 'recImeiCheck', 'recDevicesContainer')"> 
+    Enter Device Details Now (Serial/IMEI)
+</label>
+<div id="recDevicesContainer" style="margin-top:10px"></div>
+<div style="margin: 8px 4px; padding: 8px; background: #eef7ff; border-radius: 4px; border: 1px dashed #0066cc;">
+    <strong>Fast Upload (Optional Excel/CSV for Serials only):</strong> 
+    <input type="file" id="recExcelSerialFile" accept=".csv" style="margin:0;">
+    <br><small style="color:#555;">Format: Column 1 = Serial, Column 2 = IMEI1, Column 3 = IMEI2 (No headers needed)</small>
+</div>
+<button class="saveBtn" onclick="saveReceived()">Save Received</button>
+
         </div>
         <div style="background:#f9f9f9;padding:10px;border-radius:5px;margin-bottom:15px;border:1px dashed #ccc">
             <strong>Bulk Received Serial/IMEI Upload (via Excel/CSV):</strong><br>
@@ -897,19 +909,112 @@ function buildItemMaster(){
     locations.forEach(l => { lL.innerHTML += `<option value="${l}">`; });
 }
 
-function saveStockEntry(){
-    let item=document.getElementById("entryItem").value.trim(),version=document.getElementById("entryVersion").value.trim(),qty=parseInt(document.getElementById("entryQty").value)||0,date=document.getElementById("entryDate").value,remarks=document.getElementById("entryRemarks").value.trim();
-    if(!item||!version||qty <= 0){alert("Invalid Data Entered");return}
-    
-    let devices = [];
-    if(document.getElementById("entryImeiCheck").checked){
-        devices = collectDeviceDetails("entryDevicesContainer");
+function parseSerialCSVFile(fileInputId, callback) {
+    let fileInput = document.getElementById(fileInputId);
+    if (!fileInput || !fileInput.files.length) {
+        callback([]);
+        return;
     }
-    
-    db.ref("store_entries").push({item:item,version:version,qty:qty,date:date,remarks:remarks,devices:devices});
-    document.getElementById("entryItem").value="";document.getElementById("entryVersion").value="";document.getElementById("entryQty").value="";document.getElementById("entryRemarks").value="";
-    document.getElementById("entryImeiCheck").checked=false;document.getElementById("entryDevicesContainer").innerHTML="";
+    let file = fileInput.files[0];
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let text = e.target.result;
+        let lines = text.split("\n");
+        let list = [];
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
+            if (!line) continue;
+            let cols = line.split(",");
+            let s = cols[0] ? cols[0].replace(/"/g, "").trim() : "";
+            let i1 = cols[1] ? cols[1].replace(/"/g, "").trim() : "";
+            let i2 = cols[2] ? cols[2].replace(/"/g, "").trim() : "";
+            if (s || i1 || i2) {
+                list.push({ serial: s, imei1: i1, imei2: i2 });
+            }
+        }
+        callback(list);
+    };
+    reader.readAsText(file);
 }
+
+function saveStockEntry() {
+    let item = document.getElementById("entryItem").value.trim();
+    let version = document.getElementById("entryVersion").value.trim();
+    let qty = parseInt(document.getElementById("entryQty").value) || 0;
+    let date = document.getElementById("entryDate").value;
+    let remarks = document.getElementById("entryRemarks").value.trim();
+    
+    if (!item || !version || qty <= 0) { alert("Invalid Data Entered"); return; }
+    
+    parseSerialCSVFile("entryExcelSerialFile", function(excelDevices) {
+        let devices = [];
+        if (excelDevices.length > 0) {
+            devices = excelDevices;
+            if(devices.length !== qty) {
+                if(!confirm(`Warning: Form qty is ${qty} but uploaded Excel has ${devices.length} serials. Do you want to continue with ${devices.length} devices?`)) {
+                    return;
+                }
+                qty = devices.length;
+            }
+        } else if (document.getElementById("entryImeiCheck").checked) {
+            devices = collectDeviceDetails("entryDevicesContainer");
+        }
+        
+        db.ref("store_entries").push({ item: item, version: version, qty: qty, date: date, remarks: remarks, devices: devices })
+        .then(() => {
+            alert("Stock Entry Saved Successfully!");
+            document.getElementById("entryItem").value = "";
+            document.getElementById("entryVersion").value = "";
+            document.getElementById("entryQty").value = "";
+            document.getElementById("entryRemarks").value = "";
+            document.getElementById("entryImeiCheck").checked = false;
+            document.getElementById("entryDevicesContainer").innerHTML = "";
+            document.getElementById("entryExcelSerialFile").value = "";
+        });
+    });
+}
+
+function saveReceived() {
+    let item = document.getElementById("recItem").value.trim();
+    let version = document.getElementById("recVersion").value.trim();
+    let qty = parseInt(document.getElementById("recQty").value) || 0;
+    let billNumber = document.getElementById("billNumber").value.trim();
+    let supplierName = document.getElementById("supplierName").value.trim();
+    let date = document.getElementById("recDate").value;
+    let remarks = document.getElementById("recRemarks").value.trim();
+    
+    if (!item || !version || qty <= 0) { alert("Invalid Data Entered"); return; }
+    
+    parseSerialCSVFile("recExcelSerialFile", function(excelDevices) {
+        let devices = [];
+        if (excelDevices.length > 0) {
+            devices = excelDevices;
+            if(devices.length !== qty) {
+                if(!confirm(`Warning: Form qty is ${qty} but uploaded Excel has ${devices.length} serials. Do you want to continue with ${devices.length} devices?`)) {
+                    return;
+                }
+                qty = devices.length;
+            }
+        } else if (document.getElementById("recImeiCheck").checked) {
+            devices = collectDeviceDetails("recDevicesContainer");
+        }
+        
+        db.ref("store_received").push({ item: item, version: version, qty: qty, billNumber: billNumber, supplierName: supplierName, date: date, remarks: remarks, devices: devices })
+        .then(() => {
+            alert("Received / Purchase Saved Successfully!");
+            document.getElementById("recItem").value = "";
+            document.getElementById("recVersion").value = "";
+            document.getElementById("recQty").value = "";
+            document.getElementById("billNumber").value = "";
+            document.getElementById("supplierName").value = "";
+            document.getElementById("recRemarks").value = "";
+            document.getElementById("recImeiCheck").checked = false;
+            document.getElementById("recDevicesContainer").innerHTML = "";
+            document.getElementById("recExcelSerialFile").value = "";
+        });
+    });
+}
+
 
 function uploadCSVEntries(){
     let fileInput=document.getElementById("csvFileInput");
@@ -958,19 +1063,112 @@ function uploadCSVEntries(){
     };
     reader.readAsText(file)
 }
-function saveReceived(){
-    let item=document.getElementById("recItem").value.trim(),version=document.getElementById("recVersion").value.trim(),qty=parseInt(document.getElementById("recQty").value)||0,billNumber=document.getElementById("billNumber").value.trim(),supplierName=document.getElementById("supplierName").value.trim(),date=document.getElementById("recDate").value,remarks=document.getElementById("recRemarks").value.trim();
-    if(!item||!version||qty <= 0){alert("Invalid Data Entered");return}
-    
-    let devices = [];
-    if(document.getElementById("recImeiCheck").checked){
-        devices = collectDeviceDetails("recDevicesContainer");
+function parseSerialCSVFile(fileInputId, callback) {
+    let fileInput = document.getElementById(fileInputId);
+    if (!fileInput || !fileInput.files.length) {
+        callback([]);
+        return;
     }
+    let file = fileInput.files[0];
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let text = e.target.result;
+        let lines = text.split("\n");
+        let list = [];
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i].trim();
+            if (!line) continue;
+            let cols = line.split(",");
+            let s = cols[0] ? cols[0].replace(/"/g, "").trim() : "";
+            let i1 = cols[1] ? cols[1].replace(/"/g, "").trim() : "";
+            let i2 = cols[2] ? cols[2].replace(/"/g, "").trim() : "";
+            if (s || i1 || i2) {
+                list.push({ serial: s, imei1: i1, imei2: i2 });
+            }
+        }
+        callback(list);
+    };
+    reader.readAsText(file);
+}
+
+function saveStockEntry() {
+    let item = document.getElementById("entryItem").value.trim();
+    let version = document.getElementById("entryVersion").value.trim();
+    let qty = parseInt(document.getElementById("entryQty").value) || 0;
+    let date = document.getElementById("entryDate").value;
+    let remarks = document.getElementById("entryRemarks").value.trim();
     
-    db.ref("store_received").push({item:item,version:version,qty:qty,billNumber:billNumber,supplierName:supplierName,date:date,remarks:remarks,devices:devices});
-    document.getElementById("recItem").value="";document.getElementById("recVersion").value="";document.getElementById("recQty").value="";document.getElementById("billNumber").value="";document.getElementById("supplierName").value="";document.getElementById("recRemarks").value="";
-    document.getElementById("recImeiCheck").checked=false;document.getElementById("recDevicesContainer").innerHTML="";
-    }
+    if (!item || !version || qty <= 0) { alert("Invalid Data Entered"); return; }
+    
+    parseSerialCSVFile("entryExcelSerialFile", function(excelDevices) {
+        let devices = [];
+        if (excelDevices.length > 0) {
+            devices = excelDevices;
+            if(devices.length !== qty) {
+                if(!confirm(`Warning: Form qty is ${qty} but uploaded Excel has ${devices.length} serials. Do you want to continue with ${devices.length} devices?`)) {
+                    return;
+                }
+                qty = devices.length;
+            }
+        } else if (document.getElementById("entryImeiCheck").checked) {
+            devices = collectDeviceDetails("entryDevicesContainer");
+        }
+        
+        db.ref("store_entries").push({ item: item, version: version, qty: qty, date: date, remarks: remarks, devices: devices })
+        .then(() => {
+            alert("Stock Entry Saved Successfully!");
+            document.getElementById("entryItem").value = "";
+            document.getElementById("entryVersion").value = "";
+            document.getElementById("entryQty").value = "";
+            document.getElementById("entryRemarks").value = "";
+            document.getElementById("entryImeiCheck").checked = false;
+            document.getElementById("entryDevicesContainer").innerHTML = "";
+            document.getElementById("entryExcelSerialFile").value = "";
+        });
+    });
+}
+
+function saveReceived() {
+    let item = document.getElementById("recItem").value.trim();
+    let version = document.getElementById("recVersion").value.trim();
+    let qty = parseInt(document.getElementById("recQty").value) || 0;
+    let billNumber = document.getElementById("billNumber").value.trim();
+    let supplierName = document.getElementById("supplierName").value.trim();
+    let date = document.getElementById("recDate").value;
+    let remarks = document.getElementById("recRemarks").value.trim();
+    
+    if (!item || !version || qty <= 0) { alert("Invalid Data Entered"); return; }
+    
+    parseSerialCSVFile("recExcelSerialFile", function(excelDevices) {
+        let devices = [];
+        if (excelDevices.length > 0) {
+            devices = excelDevices;
+            if(devices.length !== qty) {
+                if(!confirm(`Warning: Form qty is ${qty} but uploaded Excel has ${devices.length} serials. Do you want to continue with ${devices.length} devices?`)) {
+                    return;
+                }
+                qty = devices.length;
+            }
+        } else if (document.getElementById("recImeiCheck").checked) {
+            devices = collectDeviceDetails("recDevicesContainer");
+        }
+        
+        db.ref("store_received").push({ item: item, version: version, qty: qty, billNumber: billNumber, supplierName: supplierName, date: date, remarks: remarks, devices: devices })
+        .then(() => {
+            alert("Received / Purchase Saved Successfully!");
+            document.getElementById("recItem").value = "";
+            document.getElementById("recVersion").value = "";
+            document.getElementById("recQty").value = "";
+            document.getElementById("billNumber").value = "";
+            document.getElementById("supplierName").value = "";
+            document.getElementById("recRemarks").value = "";
+            document.getElementById("recImeiCheck").checked = false;
+            document.getElementById("recDevicesContainer").innerHTML = "";
+            document.getElementById("recExcelSerialFile").value = "";
+        });
+    });
+}
+
     function uploadCSVReceived(){
     let fileInput=document.getElementById("csvRecFileInput");
     if(!fileInput.files.length){alert("Please select a Received CSV file first");return}
