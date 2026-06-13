@@ -139,12 +139,7 @@
 <div id="entryDevicesContainer" style="margin-top:10px"></div>
             <button class="saveBtn" onclick="saveStockEntry()">Save Entry</button>
         </div>
-        <div style="background:#f9f9f9;padding:10px;border-radius:5px;margin-bottom:15px;border:1px dashed #ccc">
-            <strong>Bulk Serial/IMEI Upload for Existing Items (via Excel/CSV):</strong><br>
-            <div class="file-input-wrapper"><input type="file" id="csvFileInput" accept=".csv"></div>
-            <button class="uploadBtn" onclick="uploadCSVEntries()">Upload Identifiers File</button>
-            <small style="display:block;color:#666;margin-top:5px">File Format: Item Name,Version,Qty,Date,Remarks,Serials,IMEI1s,IMEI2s (Use '|' pipe symbol to separate multiple serials/IMEIs inside rows)</small>
-        </div>
+        
         <div class="header-actions">
             <div class="filter-group">
                 <input type="text" placeholder="Search..." onkeyup="searchTable(this,'entryTable')">
@@ -187,13 +182,8 @@
 <div id="recDevicesContainer" style="margin-top:10px"></div>
             <button class="saveBtn" onclick="saveReceived()">Save Received</button>
         </div>
-        <div style="background:#f9f9f9;padding:10px;border-radius:5px;margin-bottom:15px;border:1px dashed #ccc">
-            <strong>Bulk Received Serial/IMEI Upload (via Excel/CSV):</strong><br>
-            <div class="file-input-wrapper"><input type="file" id="csvRecFileInput" accept=".csv"></div>
-            <button class="uploadBtn" onclick="uploadCSVReceived()">Upload Identifiers File</button>
-            <small style="display:block;color:#666;margin-top:5px">File Format: Item Name,Version,Qty,Bill No,Supplier,Date,Remarks,Serials,IMEI1s,IMEI2s (Use '|' pipe symbol)</small>
-        </div>
         
+     
         <div class="header-actions" style="margin-top:15px">
             <div class="filter-group">
                 <input type="text" placeholder="Search..." onkeyup="searchTable(this,'receivedTable')">
