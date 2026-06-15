@@ -139,6 +139,13 @@
             <div id="entryDevicesContainer" style="margin-top:10px"></div>
             <button class="saveBtn" onclick="saveStockEntry()">Save Entry</button>
         </div>
+
+        <div style="background:#e8f4fd;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #b8daff">
+            <strong style="color:#004085; font-size:15px;">Bulk Stock Entry Import (Excel / CSV File):</strong><br>
+            <p style="margin:5px 0; font-size:12px; color:#333;">Excel Headers required in CSV: <strong>item, version, qty, date, remarks</strong> (Date format: DD-MM-YYYY)</p>
+            <input type="file" id="excelBulkStockEntryFile" accept=".csv" style="padding:5px;">
+            <button class="saveBtn" onclick="processExcelBulkStockEntry()" style="background:#0056b3; margin-left:10px;">Upload Bulk Entries</button>
+        </div>
         
         <div class="header-actions">
             <div class="filter-group">
@@ -181,6 +188,13 @@
             </div>
             <div id="recDevicesContainer" style="margin-top:10px"></div>
             <button class="saveBtn" onclick="saveReceived()">Save Received</button>
+        </div>
+
+        <div style="background:#fff3cd;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #ffeeba">
+            <strong style="color:#856404; font-size:15px;">Bulk Purchase / Received Import (Excel / CSV File):</strong><br>
+            <p style="margin:5px 0; font-size:12px; color:#333;">Excel Headers required in CSV: <strong>item, version, qty, billNumber, supplierName, date, remarks</strong></p>
+            <input type="file" id="excelBulkReceivedFile" accept=".csv" style="padding:5px;">
+            <button class="saveBtn" onclick="processExcelBulkReceived()" style="background:#b58100; margin-left:10px;">Upload Bulk Received</button>
         </div>
         
         <div class="header-actions" style="margin-top:15px">
@@ -325,7 +339,7 @@
 
 <div id="securityPasswordModal" class="modal">
     <div class="modal-content" style="width: 320px; text-align: center; margin: 15% auto;">
-        <h3>🛡️ Security Verification</h3>
+        <h3>??? Security Verification</h3>
         <p style="font-size:13px; color:#555;">Please enter the security password to proceed:</p>
         <input type="password" id="securityPasswordInput" placeholder="Enter Security Password" style="width:90%; padding:10px; margin-bottom:10px;">
         <br>
@@ -337,7 +351,7 @@
 <div id="editMasterModal" class="modal">
     <div class="modal-content" style="width: 40%; text-align: center;">
         <span class="close" onclick="closeEditMasterModal()">&times;</span>
-        <h3>⚙️ Edit Item Details Globally</h3>
+        <h3>?? Edit Item Details Globally</h3>
         <p style="font-size:12px; color: #555;">Changing this item name will automatically update all logs globally across all categories.</p>
         <input type="hidden" id="oldItemNameHidden">
         <input type="hidden" id="oldVersionHidden">
@@ -356,7 +370,7 @@
 <div id="globalRowEditModal" class="modal">
     <div class="modal-content" style="width: 60%;">
         <span class="close" onclick="closeRowEditModal()">&times;</span>
-        <h3>📝 Update Transaction Record Details</h3>
+        <h3>?? Update Transaction Record Details</h3>
         <input type="hidden" id="editNodeHidden">
         <input type="hidden" id="editKeyHidden">
         <div id="rowEditFormBody" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; max-height:450px; overflow-y:auto; padding:10px;">
@@ -619,6 +633,113 @@ function saveReceived() {
     document.getElementById("recDevicesContainer").innerHTML = "";
 }
 
+/* NEW HELPER FUNCTIONS TO PARSE AND PROCESS BULK EXCEL ENTRIES */
+function parseCSVHelper(text) {
+    let lines = text.split(/\r?\n/);
+    let result = [];
+    if(lines.length === 0 || !lines[0]) return result;
+    
+    let headers = lines[0].split(",").map(h => h.replace(/^["']|["']$/g, '').trim().toLowerCase());
+    
+    for(let i = 1; i < lines.length; i++) {
+        if(!lines[i].trim()) continue;
+        let obj = {};
+        let currentline = lines[i].split(",");
+        headers.forEach((h, idx) => {
+            let val = currentline[idx] ? currentline[idx].replace(/^["']|["']$/g, '').trim() : "";
+            obj[h] = val;
+        });
+        result.push(obj);
+    }
+    return result;
+}
+
+function processExcelBulkStockEntry() {
+    let fileInput = document.getElementById("excelBulkStockEntryFile");
+    if(fileInput.files.length === 0) {
+        alert("Please select a valid CSV file first!");
+        return;
+    }
+    let file = fileInput.files[0];
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let rows = parseCSVHelper(e.target.result);
+        if(rows.length === 0) {
+            alert("No entries found or bad structure. Kindly inspect headers!");
+            return;
+        }
+        
+        let count = 0;
+        rows.forEach(r => {
+            let item = r.item || "";
+            let version = r.version || "";
+            let qty = parseInt(r.qty) || 0;
+            let date = r.date || new Date().toISOString().split('T')[0];
+            let remarks = r.remarks || "";
+            
+            if(item && version && qty > 0) {
+                db.ref("store_entries").push({
+                    item: item.trim(),
+                    version: version.trim(),
+                    qty: qty,
+                    date: date,
+                    remarks: remarks.trim(),
+                    devices: []
+                });
+                count++;
+            }
+        });
+        alert(`Successfully uploaded ${count} Stock Entries from file into the Cloud database!`);
+        fileInput.value = "";
+    };
+    reader.readAsText(file);
+}
+
+function processExcelBulkReceived() {
+    let fileInput = document.getElementById("excelBulkReceivedFile");
+    if(fileInput.files.length === 0) {
+        alert("Please select a valid CSV file first!");
+        return;
+    }
+    let file = fileInput.files[0];
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let rows = parseCSVHelper(e.target.result);
+        if(rows.length === 0) {
+            alert("No logs found or bad CSV format headers!");
+            return;
+        }
+        
+        let count = 0;
+        rows.forEach(r => {
+            let item = r.item || "";
+            let version = r.version || "";
+            let qty = parseInt(r.qty) || 0;
+            let billNumber = r.billnumber || r.bill_no || "";
+            let supplierName = r.suppliername || r.supplier || "";
+            let date = r.date || new Date().toISOString().split('T')[0];
+            let remarks = r.remarks || "";
+            
+            if(item && version && qty > 0) {
+                db.ref("store_received").push({
+                    item: item.trim(),
+                    version: version.trim(),
+                    qty: qty,
+                    billNumber: billNumber.trim(),
+                    supplierName: supplierName.trim(),
+                    date: date,
+                    remarks: remarks.trim(),
+                    devices: []
+                });
+                count++;
+            }
+        });
+        alert(`Successfully uploaded ${count} Purchase/Received entries into the Cloud database!`);
+        fileInput.value = "";
+    };
+    reader.readAsText(file);
+}
+
 function toggleCustomPurposeField() {
     let selectValue = document.getElementById("issuePurpose").value;
     let customField = document.getElementById("customIssuePurpose");
@@ -688,42 +809,112 @@ function formatDateDDMMYYYY(dateStr) {
     return `${day}-${month}-${year}`;
 }
 
-function handleDeviceInputsTrigger(qtyInputId, checkId, containerId) {
-    let isChecked = document.getElementById(checkId).checked;
+function handleDeviceInputsTrigger(qtyIdOrVal, checkId, containerId) {
+    let qtyInput = document.getElementById(qtyIdOrVal);
+    let qty = qtyInput ? (parseInt(qtyInput.value) || 0) : (parseInt(qtyIdOrVal) || 0);
+    let check = document.getElementById(checkId);
     let container = document.getElementById(containerId);
-    if(!isChecked) {
+    
+    if(!container) return;
+    if(!check || !check.checked || qty <= 0) {
         container.innerHTML = "";
         return;
     }
     
-    let qty = parseInt(document.getElementById(qtyInputId).value) || 0;
+    let existingRows = container.querySelectorAll(".device-entry-row").length;
+    if(existingRows === qty) return;
+    
+    let currentDevices = [];
+    container.querySelectorAll(".device-entry-row").forEach(r => {
+        currentDevices.push({
+            serial: r.querySelector(".devSerial").value.trim(),
+            imei1: r.querySelector(".devImei1").value.trim(),
+            imei2: r.querySelector(".devImei2").value.trim()
+        });
+    });
+    
     container.innerHTML = "";
-    if(qty > 0) {
-        container.innerHTML = "<strong>Enter Device Details (Serial & IMEIs):</strong><br>";
-        for(let i = 0; i < qty; i++) {
-            container.innerHTML += `
-                <div class="device-entry-row" data-index="${i}">
-                    <span>#${i+1}</span>
-                    <input type="text" class="devSerial" placeholder="Serial No" required>
-                    <input type="text" class="devImei1" placeholder="IMEI 1">
-                    <input type="text" class="devImei2" placeholder="IMEI 2">
-                </div>`;
-        }
+    for(let i = 0; i < qty; i++) {
+        let dev = currentDevices[i] || { serial: "", imei1: "", imei2: "" };
+        container.innerHTML += `
+            <div class="device-entry-row" data-index="${i}">
+                <span>#${i+1}</span>
+                <input type="text" class="devSerial" placeholder="Serial No" value="${dev.serial}" required>
+                <input type="text" class="devImei1" placeholder="IMEI 1" value="${dev.imei1}">
+                <input type="text" class="devImei2" placeholder="IMEI 2" value="${dev.imei2}">
+            </div>`;
     }
 }
 
-function collectDeviceDetails(containerId) {
-    let list = [];
-    let rows = document.querySelectorAll(`#${containerId} .device-entry-row`);
-    rows.forEach(row => {
-        let s = row.querySelector(".devSerial").value.trim();
-        let i1 = row.querySelector(".devImei1").value.trim();
-        let i2 = row.querySelector(".devImei2").value.trim();
-        if(s || i1 || i2) {
-            list.push({ serial: s, imei1: i1, imei2: i2 });
+function importBulkImeisFromExcel(qtyIdOrVal, checkId, containerId, fileInput) {
+    let file = fileInput.files[0];
+    if(!file) return;
+    
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let text = e.target.result;
+        let lines = text.split(/\r?\n/);
+        let deviceList = [];
+        
+        for(let i=0; i<lines.length; i++) {
+            let ln = lines[i].trim();
+            if(!ln) continue;
+            let parts = ln.split(",");
+            let s = parts[0] ? parts[0].replace(/^["']|["']$/g, '').trim() : "";
+            let im1 = parts[1] ? parts[1].replace(/^["']|["']$/g, '').trim() : "";
+            let im2 = parts[2] ? parts[2].replace(/^["']|["']$/g, '').trim() : "";
+            
+            if(s.toLowerCase() === "serialno" || s.toLowerCase() === "serial" || s.toLowerCase() === "serial number") {
+                continue; 
+            }
+            if(s) {
+                deviceList.push({ serial: s, imei1: im1, imei2: im2 });
+            }
         }
+        
+        if(deviceList.length === 0) {
+            alert("No valid rows matched inside Excel/CSV file!");
+            return;
+        }
+        
+        let qtyInput = document.getElementById(qtyIdOrVal);
+        if(qtyInput) {
+            qtyInput.value = deviceList.length;
+        }
+        
+        let check = document.getElementById(checkId);
+        if(check) check.checked = true;
+        
+        let container = document.getElementById(containerId);
+        container.innerHTML = "";
+        
+        deviceList.forEach((dev, i) => {
+            container.innerHTML += `
+                <div class="device-entry-row" data-index="${i}">
+                    <span>#${i+1}</span>
+                    <input type="text" class="devSerial" placeholder="Serial No" value="${dev.serial}" required>
+                    <input type="text" class="devImei1" placeholder="IMEI 1" value="${dev.imei1}">
+                    <input type="text" class="devImei2" placeholder="IMEI 2" value="${dev.imei2}">
+                </div>`;
+        });
+        
+        alert(`Successfully imported ${deviceList.length} serials/IMEIs! You can now fill out the remaining form details and save.`);
+        fileInput.value = "";
+    };
+    reader.readAsText(file);
+}
+
+function collectDeviceDetails(containerId) {
+    let arr = [];
+    let container = document.getElementById(containerId);
+    if(!container) return arr;
+    container.querySelectorAll(".device-entry-row").forEach(r => {
+        let s = r.querySelector(".devSerial").value.trim();
+        let i1 = r.querySelector(".devImei1").value.trim();
+        let i2 = r.querySelector(".devImei2").value.trim();
+        if(s) arr.push({ serial: s, imei1: i1, imei2: i2 });
     });
-    return list;
+    return arr;
 }
 
 function getLiveStockPool(targetItem, targetVersion) {
@@ -741,7 +932,7 @@ function getLiveStockPool(targetItem, targetVersion) {
     };
     addInward(entryData);
     addInward(receivedData);
-
+    
     Object.values(issueData).forEach(x => {
         if(x.item === targetItem && x.version === targetVersion && x.devices) {
             x.devices.forEach(d => {
@@ -749,6 +940,7 @@ function getLiveStockPool(targetItem, targetVersion) {
             });
         }
     });
+    
     Object.values(returnData).forEach(x => {
         if(x.item === targetItem && x.version === targetVersion && x.status === "Ok" && x.devices) {
             x.devices.forEach(d => {
@@ -794,12 +986,13 @@ function viewStockCategoryLogs(category, itemName, version) {
         headers = ["Sr.No", "Qty", "Person", "Party", "Location", "Purpose", "Date", "Remarks"];
         dataset = Object.values(issueData).filter(x => x.item === itemName && x.version === version);
     } else if(category === 'return') {
-        title.innerText = `Returned Logs (Ok Status): ${itemName} (${version})`;
+        title.innerText = `Returned Logs: ${itemName} (${version})`;
         headers = ["Sr.No", "Qty", "Person", "Party", "Location", "Purpose", "Status", "Date", "Remarks"];
-        dataset = Object.values(returnData).filter(x => x.item === itemName && x.version === version && x.status === "Ok");
+        dataset = Object.values(returnData).filter(x => x.item === itemName && x.version === version);
     }
+    
     if(dataset.length === 0) {
-        body.innerHTML = "<p style='color:red; font-weight:bold; padding:10px;'>No entry history found for this item selection!</p>";
+        body.innerHTML = "<p style='color:red;font-weight:bold;padding:10px;'>No direct tracking log segments found under this category.</p>";
     } else {
         let tableHtml = `<table><thead><tr>`;
         headers.forEach(h => tableHtml += `<th>${h}</th>`);
@@ -838,7 +1031,7 @@ function addIssueRow() {
             <datalist id="${rowId}_vDL" class="classVersionDL"></datalist>
             <input type="number" class="issueQty" placeholder="Issue Qty">
             <div style="margin:10px 4px; font-weight:bold; color:#002b5c;">
-                ⚙️ Select Available Serial/IMEI from Live Stock:
+                 Select Available Serial/IMEI from Live Stock:
                 <div class="live-imei-box classLiveContainer">
                     <p style="color:#888; font-style:italic; padding:5px;">Please select Item Name and Version first...</p>
                 </div>
@@ -858,17 +1051,18 @@ function loadRowLiveIMEIs(rowId) {
         return;
     }
     let availablePool = getLiveStockPool(item, version);
-    container.innerHTML = "";
     if(availablePool.length === 0) {
-        container.innerHTML = `<p style="color:red; font-weight:bold; padding:5px;">No Live Serial/IMEI details found in database!</p>`;
+        container.innerHTML = `<p style="color:red; font-style:italic; padding:5px;">No active serialized stock available in store!</p>`;
         return;
     }
-    availablePool.forEach((device, idx) => {
+    container.innerHTML = "";
+    availablePool.forEach((p, idx) => {
         container.innerHTML += `
-            <div class="live-imei-item">
-                <input type="checkbox" class="issue-imei-cb" value="${device.serial}" data-imei1="${device.imei1}" data-imei2="${device.imei2}">
-                <span><strong>S/N:</strong> ${device.serial} | <strong>IMEI 1:</strong> ${device.imei1 || '-'} | <strong>IMEI 2:</strong> ${device.imei2 || '-'}</span>
-            </div>`;
+            <label class="live-imei-item">
+                <input type="checkbox" class="issue-imei-cb" value="${p.serial}" data-imei1="${p.imei1}" data-imei2="${p.imei2}">
+                <span><strong>S/N:</strong> ${p.serial} ${p.imei1?`| <strong>I1:</strong> ${p.imei1}`:''} ${p.imei2?`| <strong>I2:</strong> ${p.imei2}`:''}</span>
+            </label>
+        `;
     });
 }
 
@@ -880,27 +1074,34 @@ function saveGlobalIssues() {
     let purpose = purposeSelect === "Self" ? document.getElementById("customIssuePurpose").value.trim() : purposeSelect;
     let date = document.getElementById("issueDate").value;
     let remarks = document.getElementById("issueRemarks").value.trim();
-    if(!purpose) {
-        alert("Please select or type a purpose!");
+    
+    if(!person || !party || !purpose || !date) {
+        alert("Please map all general workflow parameters (Person, Party, Purpose, Date)!");
         return;
     }
+    
     let rows = document.querySelectorAll("#issueRowsContainer .dynamic-item-row");
     if(rows.length === 0) {
-        alert("Please add at least one item row to issue!");
+        alert("Please configure at least one item mapping!");
         return;
     }
+    
     let validLogs = [];
     let hasError = false;
     let errorMessage = "";
+    
     rows.forEach(row => {
+        if(hasError) return;
         let item = row.querySelector(".issueItem").value.trim();
         let version = row.querySelector(".issueVersion").value.trim();
         let qty = parseInt(row.querySelector(".issueQty").value) || 0;
+        
         if(!item || !version || qty <= 0) {
             hasError = true;
             errorMessage = "Please enter valid configurations and quantities!";
             return;
         }
+        
         let stockKey = item + "|||" + version;
         let availableStock = globalCalculatedStock[stockKey] || 0;
         if (qty > availableStock) {
@@ -908,19 +1109,28 @@ function saveGlobalIssues() {
             errorMessage = `Error: Deficit Stock! "${item} (${version})" only has ${availableStock} units left.`;
             return;
         }
+        
         let devices = [];
         let checkboxes = row.querySelectorAll(".issue-imei-cb:checked");
         checkboxes.forEach(cb => {
-            devices.push({ serial: cb.value, imei1: cb.getAttribute("data-imei1") || "", imei2: cb.getAttribute("data-imei2") || "" });
+            devices.push({
+                serial: cb.value,
+                imei1: cb.getAttribute("data-imei1") || "",
+                imei2: cb.getAttribute("data-imei2") || ""
+            });
         });
+        
         validLogs.push({ item, version, qty, person, party, location, purpose, date, remarks, devices });
     });
+    
     if(hasError) {
         alert(errorMessage);
         return;
     }
+    
     validLogs.forEach(log => db.ref("store_issues").push(log));
     alert("Issues Saved Successfully!");
+    
     document.getElementById("issuePerson").value = "";
     document.getElementById("issueParty").value = "";
     document.getElementById("issueLocation").value = "";
@@ -959,41 +1169,50 @@ function saveGlobalReturns() {
     let person = document.getElementById("returnPerson").value.trim();
     let party = document.getElementById("returnParty").value.trim();
     let location = document.getElementById("returnLocation").value.trim();
-    
     let purposeSelect = document.getElementById("returnPurpose").value;
     let purpose = purposeSelect === "Self" ? document.getElementById("customReturnPurpose").value.trim() : purposeSelect;
-    
     let status = document.getElementById("returnStatus").value;
     let date = document.getElementById("returnDate").value;
     let remarks = document.getElementById("returnRemarks").value.trim();
     
+    if(!person || !party || !purpose || !date) {
+        alert("Please set general metadata validation tags!");
+        return;
+    }
+    
     let rows = document.querySelectorAll("#returnRowsContainer .dynamic-item-row");
     if(rows.length === 0) {
-        alert("Please add at least one item row to return!");
+        alert("Please define at least one active payload!");
         return;
     }
+    
     let validLogs = [];
     let hasError = false;
-    let errorMessage = "";
+    
     rows.forEach(row => {
+        if(hasError) return;
         let item = row.querySelector(".returnItem").value.trim();
         let version = row.querySelector(".returnVersion").value.trim();
-        let qty = parseInt(row.querySelector(".returnQty").value) || 0;
-        let rowId = row.id;
+        let qtyField = row.querySelector(".returnQty");
+        let qty = parseInt(qtyField.value) || 0;
+        let rId = row.id;
+        
         if(!item || !version || qty <= 0) {
             hasError = true;
-            errorMessage = "Please provide valid fields and quantities!";
             return;
         }
-        let devices = collectDeviceDetails(rowId + "_container");
+        let devices = collectDeviceDetails(`${rId}_container`);
         validLogs.push({ item, version, qty, person, party, location, purpose, status, date, remarks, devices });
     });
+    
     if(hasError) {
-        alert(errorMessage);
+        alert("Please fill all items data matrix arrays properly!");
         return;
     }
+    
     validLogs.forEach(log => db.ref("store_returns").push(log));
     alert("Returns Saved Successfully!");
+    
     document.getElementById("returnPerson").value = "";
     document.getElementById("returnParty").value = "";
     document.getElementById("returnLocation").value = "";
@@ -1018,17 +1237,20 @@ function buildItemMaster() {
         if(x.location) locations.add(x.location.trim());
     });
     ex(entryData); ex(receivedData); ex(issueData); ex(returnData);
-
+    
     let iDL = document.getElementById("itemList"); iDL.innerHTML = "";
     items.forEach(x => iDL.innerHTML += `<option value="${x}">`);
+    
     let pDL = document.getElementById("partyList"); pDL.innerHTML = "";
     parties.forEach(x => pDL.innerHTML += `<option value="${x}">`);
+    
     let lDL = document.getElementById("locationList"); lDL.innerHTML = "";
     locations.forEach(x => lDL.innerHTML += `<option value="${x}">`);
 }
 
 function renderTables() {
-    let rBody = document.querySelector("#reportTable tbody"); rBody.innerHTML = "";
+    let rBody = document.querySelector("#reportTable tbody");
+    rBody.innerHTML = "";
     let idx = 0;
     Object.keys(globalCalculatedStock).sort().forEach(key => {
         let [n, v] = key.split("|||");
@@ -1046,7 +1268,7 @@ function renderTables() {
             let maxD = new Date(Math.max.apply(null, allDates));
             lastUp = formatDateDDMMYYYY(maxD.toISOString().split("T")[0]);
         }
-
+        
         idx++;
         rBody.innerHTML += `<tr>
             <td>${idx}</td>
@@ -1056,21 +1278,19 @@ function renderTables() {
             <td class="clickable-qty" onclick="viewStockCategoryLogs('received','${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">${p}</td>
             <td class="clickable-qty" onclick="viewStockCategoryLogs('issue','${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">${i}</td>
             <td class="clickable-qty" onclick="viewStockCategoryLogs('return','${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">${r}</td>
-            <td><strong style="color:${bal < 0 ? 'red' : 'green'}; font-size:15px;">${bal}</strong></td>
-            <td>${lastUp}</td>
+            <td><strong style="color:${bal<0?'red':'green'}">${bal}</strong></td>
+            <td><small>${lastUp}</small></td>
             <td>-</td>
-            <td><button class="detailsBtn" onclick="viewLiveDevices('${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">View Live (${getLiveStockPool(n,v).length})</button></td>
-            <td><button class="editBtn" onclick="openEditMasterModal('${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">Edit Globally</button></td>
+            <td><button class="detailsBtn" style="padding:4px 8px; font-size:12px;" onclick="viewLiveDevices('${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">Live S/N</button></td>
+            <td><button class="editBtn" style="padding:3px 7px; font-size:12px;" onclick="openEditMasterModal('${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">Rename</button></td>
         </tr>`;
     });
-
-    let eBody = document.querySelector("#entryTable tbody"); eBody.innerHTML = "";
-    idx = 0;
+    
+    let entBody = document.querySelector("#entryTable tbody"); entBody.innerHTML = ""; idx = 0;
     Object.keys(entryData).forEach(k => {
         let x = entryData[k]; idx++;
-        eBody.innerHTML += `<tr>
-            <td>${idx}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.qty}</strong></td>
-            <td>${formatDateDDMMYYYY(x.date)}</td><td>${x.remarks || '-'}</td>
+        entBody.innerHTML += `<tr>
+            <td>${idx}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.qty}</strong></td><td>${formatDateDDMMYYYY(x.date)}</td><td>${x.remarks || '-'}</td>
             <td><button class="detailsBtn" onclick="viewLogDevices('store_entries','${k}')">View (${(x.devices || []).length})</button></td>
             <td>
                 <button class="editBtn" onclick="openRowEditModal('store_entries','${k}')">Edit</button>
@@ -1078,9 +1298,8 @@ function renderTables() {
             </td>
         </tr>`;
     });
-
-    let recBody = document.querySelector("#receivedTable tbody"); recBody.innerHTML = "";
-    idx = 0;
+    
+    let recBody = document.querySelector("#receivedTable tbody"); recBody.innerHTML = ""; idx = 0;
     Object.keys(receivedData).forEach(k => {
         let x = receivedData[k]; idx++;
         recBody.innerHTML += `<tr>
@@ -1093,9 +1312,8 @@ function renderTables() {
             </td>
         </tr>`;
     });
-
-    let iBody = document.querySelector("#issueTable tbody"); iBody.innerHTML = "";
-    idx = 0;
+    
+    let iBody = document.querySelector("#issueTable tbody"); iBody.innerHTML = ""; idx = 0;
     Object.keys(issueData).forEach(k => {
         let x = issueData[k]; idx++;
         iBody.innerHTML += `<tr>
@@ -1110,9 +1328,8 @@ function renderTables() {
             </td>
         </tr>`;
     });
-
-    let retBody = document.querySelector("#returnTable tbody"); retBody.innerHTML = "";
-    idx = 0;
+    
+    let retBody = document.querySelector("#returnTable tbody"); retBody.innerHTML = ""; idx = 0;
     Object.keys(returnData).forEach(k => {
         let x = returnData[k]; idx++;
         retBody.innerHTML += `<tr>
@@ -1131,51 +1348,46 @@ function renderTables() {
 }
 
 function renderSummaryTable() {
-    let body = document.querySelector("#summaryTable tbody"); body.innerHTML = "";
-    let idx = 0;
+    let body = document.querySelector("#summaryTable tbody");
+    body.innerHTML = "";
     
     let nonSerialReturnsMap = {};
     Object.values(returnData).forEach(r => {
-        if(r.status === "Ok" && (!r.devices || r.devices.length === 0)) {
-            let rParty = (r.party || "").trim().toLowerCase();
-            let rItem = (r.item || "").trim().toLowerCase();
-            let rVer = (r.version || "").trim().toLowerCase();
-            let key = rParty + "|||" + rItem + "|||" + rVer;
-            nonSerialReturnsMap[key] = (nonSerialReturnsMap[key] || 0) + (parseInt(r.qty) || 0);
+        if(!r.devices || r.devices.length === 0) {
+            let k = `${r.item.trim()}|||${r.version.trim()}|||${r.party ? r.party.trim() : ''}|||${r.purpose ? r.purpose.trim() : ''}|||${r.status}`;
+            if(r.status === 'Ok') {
+                nonSerialReturnsMap[k] = (nonSerialReturnsMap[k] || 0) + (parseInt(r.qty) || 0);
+            }
         }
     });
 
-    Object.keys(issueData).forEach(k => {
-        let x = issueData[k];
+    let idx = 0;
+    let sortedIssues = Object.values(issueData).sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    sortedIssues.forEach(x => {
         let totalQty = parseInt(x.qty) || 0;
-        let dInfo = "-";
-        let overallStatus = "";
+        let overallStatus = `<span class="status-badge status-na">N/A</span>`;
+        let dInfo = "";
         
-        let xParty = (x.party || "").trim().toLowerCase();
-        let xItem = (x.item || "").trim().toLowerCase();
-        let xVer = (x.version || "").trim().toLowerCase();
-        let nKey = xParty + "|||" + xItem + "|||" + xVer;
-
         if(x.devices && x.devices.length > 0) {
-            let returnedCount = 0;
-            dInfo = x.devices.map(d => {
-                let isRet = isDeviceReturned(d.serial);
-                if(isRet) returnedCount++;
-                let trackingStatus = isRet ? `<span class="status-badge status-returned">Returned Back</span>` : `<span class="status-badge status-party">With Party</span>`;
-                return `<div style="margin-bottom:6px; border-bottom:1px dashed #ddd; padding-bottom:4px;">
-                    <strong>S/N:</strong> ${d.serial} ${trackingStatus}<br>
-                    <small style="color:#555;">IMEI1: ${d.imei1 || '-'} | IMEI2: ${d.imei2 || '-'}</small>
-                </div>`;
-            }).join("");
-
-            if(returnedCount === 0) {
+            let trackedReturnedCount = 0;
+            let devLines = [];
+            x.devices.forEach(d => {
+                let ret = isDeviceReturned(d.serial);
+                if(ret) trackedReturnedCount++;
+                devLines.push(`<span style="color:${ret?'green':'red'}; display:block;">• S/N: ${d.serial} [${ret?'Returned In Store':'Outstanding / Party'}]</span>`);
+            });
+            dInfo = devLines.join("");
+            
+            if(trackedReturnedCount === 0) {
                 overallStatus = `<span class="status-badge status-party">Active / Outstanding</span>`;
-            } else if(returnedCount < x.devices.length) {
-                overallStatus = `<span class="status-badge" style="background-color: orange; color: white;">Partially Returned (${returnedCount}/${x.devices.length})</span>`;
+            } else if(trackedReturnedCount < x.devices.length) {
+                overallStatus = `<span class="status-badge" style="background-color: orange; color: white;">Partially Returned (${trackedReturnedCount}/${x.devices.length})</span>`;
             } else {
                 overallStatus = `<span class="status-badge status-returned">Fully Returned</span>`;
             }
         } else {
+            let nKey = `${x.item.trim()}|||${x.version.trim()}|||${x.party ? x.party.trim() : ''}|||${x.purpose ? x.purpose.trim() : ''}|||Ok`;
             let availableReturns = nonSerialReturnsMap[nKey] || 0;
             let returnedForThisIssue = 0;
             
@@ -1188,7 +1400,6 @@ function renderSummaryTable() {
                     nonSerialReturnsMap[nKey] = 0;
                 }
             }
-            
             dInfo = `<div style="color:#555; font-style:italic;">No Serial/IMEI logged (Qty tracking)</div>`;
             if(returnedForThisIssue === 0) {
                 overallStatus = `<span class="status-badge status-party">Active / Outstanding</span>`;
@@ -1201,7 +1412,7 @@ function renderSummaryTable() {
                 dInfo += `<div style="color:green; font-weight:bold; margin-top:4px;">All ${totalQty} Returned</div>`;
             }
         }
-
+        
         idx++;
         body.innerHTML += `<tr>
             <td>${idx}</td>
@@ -1237,15 +1448,19 @@ function viewLiveDevices(itemName, version) {
 
 function viewLogDevices(node, key) {
     let record = (node === 'store_entries') ? entryData[key] : (node === 'store_received') ? receivedData[key] : (node === 'store_issues') ? issueData[key] : returnData[key];
+    if(!record) return;
+    
     let body = document.getElementById("modalBody");
-    document.getElementById("modalTitle").innerText = `Transaction Serial/IMEI Log Details`;
+    document.getElementById("modalTitle").innerText = `Logged Devices: ${record.item} (${record.version})`;
     body.innerHTML = "";
-    if(!record || !record.devices || record.devices.length === 0) {
-        body.innerHTML = "<p style='color:red; font-weight:bold;'>No individual device parameters found/saved in this transaction!</p>";
+    
+    let devList = record.devices || [];
+    if(devList.length === 0) {
+        body.innerHTML = "<p style='padding:10px; font-style:italic; color:#666;'>No specific Device Serial/IMEI details captured inside this transaction node row.</p>";
     } else {
         let h = "<table><thead><tr><th>#</th><th>Serial No</th><th>IMEI 1</th><th>IMEI 2</th></tr></thead><tbody>";
-        record.devices.forEach((p, idx) => {
-            h += `<tr><td>${idx+1}</td><td><strong>${p.serial}</strong></td><td>${p.imei1 || '-'}</td><td>${p.imei2 || '-'}</td></tr>`;
+        devList.forEach((d, idx) => {
+            h += `<tr><td>${idx+1}</td><td><strong>${d.serial}</strong></td><td>${d.imei1 || '-'}</td><td>${d.imei2 || '-'}</td></tr>`;
         });
         h += "</tbody></table>";
         body.innerHTML = h;
@@ -1254,30 +1469,40 @@ function viewLogDevices(node, key) {
 }
 
 function deleteRecord(node, key) {
+    let targetObj = (node==='store_entries')?entryData[key]:(node==='store_received')?receivedData[key]:(node==='store_issues')?issueData[key]:returnData[key];
+    if(!targetObj) return;
+    
     requireSecurePassword(function() {
-        let target = (node === 'store_entries') ? entryData[key] : (node === 'store_received') ? receivedData[key] : (node === 'store_issues') ? issueData[key] : returnData[key];
-        if(confirm("Are you absolute sure you want to delete this operational log record?")) {
-            db.ref("deleted_backup").push({ node: node, data: target, deletedAt: firebase.database.ServerValue.TIMESTAMP });
-            db.ref(`${node}/${key}`).remove();
-            alert("Log Data Purged Successfully!");
+        if(confirm("Are you absolutely sure you want to delete this recorded log data?")) {
+            db.ref("deleted_backup").push({
+                node: node,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                data: targetObj
+            }).then(() => {
+                db.ref(`${node}/${k}`).remove();
+                alert("Record deleted globally and backed up securely.");
+            });
         }
     });
 }
 
 function restoreData() {
     requireSecurePassword(function() {
-        let keys = Object.keys(deletedBackup);
-        if(keys.length === 0) {
-            alert("No deleted records available for historical restoration!");
-            return;
-        }
-        let lastK = keys[keys.length - 1];
-        let target = deletedBackup[lastK];
-        if(confirm(`Do you want to restore last deleted entry into '${target.node}'?`)) {
-            db.ref(target.node).push(target.data);
-            db.ref(`deleted_backup/${lastK}`).remove();
-            alert("Data Node Restored Successfully!");
-        }
+        db.ref("deleted_backup").once("value", s => {
+            let data = s.val() || {};
+            let keys = Object.keys(data).sort();
+            if(keys.length === 0) {
+                alert("No deleted records available for historical restoration!");
+                return;
+            }
+            let lastK = keys[keys.length - 1];
+            let target = data[lastK];
+            if(confirm(`Do you want to restore last deleted entry into '${target.node}'?`)) {
+                db.ref(target.node).push(target.data);
+                db.ref(`deleted_backup/${lastK}`).remove();
+                alert("Data Node Restored Successfully!");
+            }
+        });
     });
 }
 
@@ -1290,6 +1515,7 @@ function openEditMasterModal(item, version) {
         document.getElementById("editMasterModal").style.display = "block";
     });
 }
+
 function closeEditMasterModal() {
     document.getElementById("editMasterModal").style.display = "none";
 }
@@ -1304,6 +1530,7 @@ function submitGlobalItemEdit() {
         alert("Names cannot be left blank!");
         return;
     }
+    
     if(confirm("This will perform global updates across all categories. Proceed?")) {
         const up = (node, dataObj) => {
             Object.keys(dataObj).forEach(k => {
@@ -1334,14 +1561,17 @@ function openRowEditModal(node, key) {
         Object.keys(x).forEach(f => {
             if(f === 'devices') return;
             let val = x[f] || "";
-            body.innerHTML += `<div>
-                <label style="font-weight:bold;text-transform:capitalize;display:block;">${f}:</label>
-                <input type="text" id="field_${f}" value="${val}" style="width:95%;">
-            </div>`;
+            let type = (f === 'date') ? 'date' : (f === 'qty') ? 'number' : 'text';
+            body.innerHTML += `
+                <div style="margin-bottom:6px;">
+                    <label style="text-transform:capitalize; font-weight:bold; display:block;">${f}:</label>
+                    <input type="${type}" class="modalEditField" data-field="${f}" value="${val}" style="width:95%; padding:6px;">
+                </div>`;
         });
         document.getElementById("globalRowEditModal").style.display = "block";
     });
 }
+
 function closeRowEditModal() {
     document.getElementById("globalRowEditModal").style.display = "none";
 }
@@ -1349,53 +1579,44 @@ function closeRowEditModal() {
 function submitRowDataEdit() {
     let node = document.getElementById("editNodeHidden").value;
     let key = document.getElementById("editKeyHidden").value;
-    let x = (node==='store_entries')?entryData[key]:(node==='store_received')?receivedData[key]:(node==='store_issues')?issueData[key]:returnData[key];
-    if(!x) return;
+    let upd = {};
     
-    let updatedObj = {};
-    Object.keys(x).forEach(f => {
-        if(f === 'devices') {
-            updatedObj[f] = x[f];
-            return;
-        }
-        let el = document.getElementById(`field_${f}`);
-        if(el) {
-            let v = el.value.trim();
-            if(f === 'qty') v = parseInt(v) || 0;
-            updatedObj[f] = v;
-        }
+    document.querySelectorAll(".modalEditField").forEach(inp => {
+        let f = inp.getAttribute("data-field");
+        let v = inp.value.trim();
+        if(f === 'qty') v = parseInt(v) || 0;
+        upd[f] = v;
     });
     
-    db.ref(`${node}/${key}`).set(updatedObj);
-    alert("Record updated successfully!");
-    closeRowEditModal();
+    if(confirm("Are you sure you want to save modifications for this item row?")) {
+        db.ref(`${node}/${key}`).update(upd);
+        alert("Transaction row saved successfully!");
+        closeRowEditModal();
+    }
 }
 
-function showSection(id){
-    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+function showSection(id) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
     document.getElementById(id).classList.add("active");
 }
 
 function searchTable(input, tableId) {
-    let val = input.value.toLowerCase();
+    let txt = input.value.toLowerCase();
     document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
-        tr.style.display = tr.innerText.toLowerCase().includes(val) ? "" : "none";
+        tr.style.display = tr.innerText.toLowerCase().includes(txt) ? "" : "none";
     });
 }
 
 function searchSummaryTable(input) {
-    searchTable(input, 'summaryTable');
+    searchTable(input, "summaryTable");
 }
 
 function filterSummaryByPurpose() {
-    let filter = document.getElementById("summaryPurposeFilter").value;
+    let val = document.getElementById("summaryPurposeFilter").value;
     document.querySelectorAll("#summaryTable tbody tr").forEach(tr => {
-        let purposeTd = tr.cells[6].innerText.trim();
-        if(filter === "ALL" || purposeTd === filter) {
-            tr.style.display = "";
-        } else {
-            tr.style.display = "none";
-        }
+        if(val === "ALL") { tr.style.display = ""; return; }
+        let purpTd = tr.cells[6].innerText.trim();
+        tr.style.display = (purpTd === val) ? "" : "none";
     });
 }
 
@@ -1408,17 +1629,14 @@ function filterByDate(tableId, dateColIndex, fromId, toId) {
     let tDate = toVal ? new Date(toVal) : null;
     if(fDate) fDate.setHours(0,0,0,0);
     if(tDate) tDate.setHours(23,59,59,999);
-
+    
     document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
         let tdText = tr.cells[dateColIndex].innerText.trim();
-        if(!tdText || tdText === "-") {
-            tr.style.display = "none";
-            return;
-        }
+        if(!tdText || tdText === "-") { tr.style.display = "none"; return; }
         let parts = tdText.split("-");
         let rowDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
         rowDate.setHours(12,0,0,0);
-
+        
         let show = true;
         if(fDate && rowDate < fDate) show = false;
         if(tDate && rowDate > tDate) show = false;
@@ -1426,58 +1644,6 @@ function filterByDate(tableId, dateColIndex, fromId, toId) {
     });
 }
 
-function importBulkImeisFromExcel(qtyInputId, checkId, containerId, fileInput) {
-    let file = fileInput.files[0];
-    if(!file) return;
-    
-    let reader = new FileReader();
-    reader.onload = function(e) {
-        let text = e.target.result;
-        let lines = text.split(/\r?\n/);
-        let deviceList = [];
-        
-        lines.forEach((line, idx) => {
-            if(!line.trim()) return;
-            let cols = line.split(",").map(c => c.replace(/^"|"$/g, "").trim());
-            if(idx === 0 && (cols[0].toLowerCase().includes("serial") || cols[1].toLowerCase().includes("imei"))) {
-                return; 
-            }
-            if(cols[0] || cols[1] || cols[2]) {
-                deviceList.push({
-                    serial: cols[0] || "",
-                    imei1: cols[1] || "",
-                    imei2: cols[2] || ""
-                });
-            }
-        });
-        
-        if(deviceList.length === 0) {
-            alert("No data found inside CSV file!");
-            return;
-        }
-        
-        document.getElementById(qtyInputId).value = deviceList.length;
-        document.getElementById(checkId).checked = true;
-        
-        let container = document.getElementById(containerId);
-        container.innerHTML = "<strong>Imported Device Details (Serial & IMEIs):</strong><br>";
-        
-        deviceList.forEach((dev, i) => {
-            container.innerHTML += `
-                <div class="device-entry-row" data-index="${i}">
-                    <span>#${i+1}</span>
-                    <input type="text" class="devSerial" placeholder="Serial No" value="${dev.serial}" required>
-                    <input type="text" class="devImei1" placeholder="IMEI 1" value="${dev.imei1}">
-                    <input type="text" class="devImei2" placeholder="IMEI 2" value="${dev.imei2}">
-                </div>`;
-        });
-
-        alert(`Successfully imported ${deviceList.length} serials/IMEIs! You can now fill out the remaining form details and save.`);
-        fileInput.value = "";
-    };
-    reader.readAsText(file);
-}
-    
 function downloadCSV(tId, fName) {
     let csv = [];
     document.querySelectorAll(`#${tId} tr`).forEach(r => {
@@ -1490,11 +1656,14 @@ function downloadCSV(tId, fName) {
         });
         if (rD.length > 0) csv.push(rD.join(","));
     });
-    let cF = new Blob([csv.join("\n")], { type: "text/csv;charset=utf-8;" });
-    let l = document.createElement("a");
-    l.download = fName;
-    l.href = window.URL.createObjectURL(cF);
-    l.click();
+    
+    let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+    let link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", fName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 </script>
 </body>
