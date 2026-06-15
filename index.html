@@ -71,7 +71,7 @@
             <button onclick="sendOTPRequest()" style="width:96%; background:orange; color:white; font-weight:bold;">Send OTP</button>
         </div>
         <div id="otpVerifyStep" style="display:none; margin-top:10px;">
-            <input type="text" id="emailOtpInput" placeholder="Enter 6-Digit OTP" style="width:90%"><br>
+            <input type="password" id="emailOtpInput" placeholder="Enter 6-Digit OTP" style="width:90%"><br>
             <button onclick="verifyOTP()" style="width:96%; background:green; color:white; font-weight:bold; margin-top:5px;">Verify OTP</button>
         </div>
         <div id="fieldsChangeStep" style="display:none; margin-top:10px;">
@@ -323,6 +323,17 @@
     </div>
 </div>
 
+<div id="securityPasswordModal" class="modal">
+    <div class="modal-content" style="width: 320px; text-align: center; margin: 15% auto;">
+        <h3>🛡️ Security Verification</h3>
+        <p style="font-size:13px; color:#555;">Please enter the security password to proceed:</p>
+        <input type="password" id="securityPasswordInput" placeholder="Enter Security Password" style="width:90%; padding:10px; margin-bottom:10px;">
+        <br>
+        <button onclick="submitSecurityPassword()" style="background:green; color:white; font-weight:bold; padding:8px 20px; border:none; border-radius:4px; cursor:pointer;">Submit</button>
+        <button onclick="closeSecurityPasswordModal()" style="background:#6c757d; color:white; font-weight:bold; padding:8px 20px; border:none; border-radius:4px; cursor:pointer; margin-left:5px;">Cancel</button>
+    </div>
+</div>
+
 <div id="editMasterModal" class="modal">
     <div class="modal-content" style="width: 40%; text-align: center;">
         <span class="close" onclick="closeEditMasterModal()">&times;</span>
@@ -378,6 +389,7 @@ let currentGeneratedOTP = null;
 let issueRowCount = 0;
 let returnRowCount = 0;
 let globalCalculatedStock = {}; 
+let pendingSecurityAction = null;
 
 if(!localStorage.getItem("store_user")) localStorage.setItem("store_user", "Sanchar");
 if(!localStorage.getItem("store_pass")) localStorage.setItem("store_pass", "Sanchar@171");
@@ -388,16 +400,35 @@ document.getElementById("username").addEventListener("keyup", function(event) {
 document.getElementById("password").addEventListener("keyup", function(event) {
     if (event.key === "Enter") loginSystem();
 });
+document.getElementById("securityPasswordInput").addEventListener("keyup", function(event) {
+    if (event.key === "Enter") submitSecurityPassword();
+});
 
-function checkSecurePassword() {
-    let pass = prompt("Please enter the Security Password to perform action:");
+function requireSecurePassword(callback) {
+    pendingSecurityAction = callback;
+    document.getElementById("securityPasswordInput").value = "";
+    document.getElementById("securityPasswordModal").style.display = "block";
+    document.getElementById("securityPasswordInput").focus();
+}
+
+function submitSecurityPassword() {
+    let pass = document.getElementById("securityPasswordInput").value;
     if(pass === "Pardeep@1999") {
-        return true;
+        document.getElementById("securityPasswordModal").style.display = "none";
+        if(pendingSecurityAction) {
+            pendingSecurityAction();
+            pendingSecurityAction = null;
+        }
     } else {
         alert("Incorrect Password! Access Denied.");
-        return false;
     }
 }
+
+function closeSecurityPasswordModal() {
+    document.getElementById("securityPasswordModal").style.display = "none";
+    pendingSecurityAction = null;
+}
+
 function loginSystem(){
     var u=document.getElementById("username").value.trim(),p=document.getElementById("password").value.trim();
     var savedU = localStorage.getItem("store_user");
@@ -435,7 +466,8 @@ function resetCredentialForm(){
 
 function sendOTPRequest(){
     currentGeneratedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-    alert("OTP sent to officialpardeep07@gmail.com!\nVerification Security Code: " + currentGeneratedOTP);
+    alert("OTP generated for officialpardeep07@gmail.com!\nCheck System Code to verify.");
+    console.log("OTP Verification Code: " + currentGeneratedOTP);
     document.getElementById("otpRequestStep").style.display = "none";
     document.getElementById("otpVerifyStep").style.display = "block";
 }
@@ -515,6 +547,76 @@ function calculateStockPool() {
         let bal = e + p - i + r;
         globalCalculatedStock[key] = bal;
     });
+}
+
+function saveStockEntry() {
+    let item = document.getElementById("entryItem").value.trim();
+    let version = document.getElementById("entryVersion").value.trim();
+    let qty = parseInt(document.getElementById("entryQty").value) || 0;
+    let date = document.getElementById("entryDate").value;
+    let remarks = document.getElementById("entryRemarks").value.trim();
+    
+    if(!item || !version || qty <= 0 || !date) {
+        alert("Please fill all required fields (Item, Version, Qty, Date)!");
+        return;
+    }
+    let devices = collectDeviceDetails("entryDevicesContainer");
+    
+    db.ref("store_entries").push({
+        item: item,
+        version: version,
+        qty: qty,
+        date: date,
+        remarks: remarks,
+        devices: devices
+    });
+    
+    alert("Stock Entry Saved Successfully!");
+    document.getElementById("entryItem").value = "";
+    document.getElementById("entryVersion").value = "";
+    document.getElementById("entryQty").value = "";
+    document.getElementById("entryDate").value = "";
+    document.getElementById("entryRemarks").value = "";
+    document.getElementById("entryImeiCheck").checked = false;
+    document.getElementById("entryDevicesContainer").innerHTML = "";
+}
+
+function saveReceived() {
+    let item = document.getElementById("recItem").value.trim();
+    let version = document.getElementById("recVersion").value.trim();
+    let qty = parseInt(document.getElementById("recQty").value) || 0;
+    let billNumber = document.getElementById("billNumber").value.trim();
+    let supplierName = document.getElementById("supplierName").value.trim();
+    let date = document.getElementById("recDate").value;
+    let remarks = document.getElementById("recRemarks").value.trim();
+    
+    if(!item || !version || qty <= 0 || !date) {
+        alert("Please fill all required fields (Item, Version, Qty, Date)!");
+        return;
+    }
+    let devices = collectDeviceDetails("recDevicesContainer");
+    
+    db.ref("store_received").push({
+        item: item,
+        version: version,
+        qty: qty,
+        billNumber: billNumber,
+        supplierName: supplierName,
+        date: date,
+        remarks: remarks,
+        devices: devices
+    });
+    
+    alert("Purchase / Received Entry Saved Successfully!");
+    document.getElementById("recItem").value = "";
+    document.getElementById("recVersion").value = "";
+    document.getElementById("recQty").value = "";
+    document.getElementById("billNumber").value = "";
+    document.getElementById("supplierName").value = "";
+    document.getElementById("recDate").value = "";
+    document.getElementById("recRemarks").value = "";
+    document.getElementById("recImeiCheck").checked = false;
+    document.getElementById("recDevicesContainer").innerHTML = "";
 }
 
 function toggleCustomPurposeField() {
@@ -1032,7 +1134,6 @@ function renderSummaryTable() {
     let body = document.querySelector("#summaryTable tbody"); body.innerHTML = "";
     let idx = 0;
     
-    // Non-serialized item logs tracking memory
     let nonSerialReturnsMap = {};
     Object.values(returnData).forEach(r => {
         if(r.status === "Ok" && (!r.devices || r.devices.length === 0)) {
@@ -1056,7 +1157,6 @@ function renderSummaryTable() {
         let nKey = xParty + "|||" + xItem + "|||" + xVer;
 
         if(x.devices && x.devices.length > 0) {
-            // Serialized Tracking
             let returnedCount = 0;
             dInfo = x.devices.map(d => {
                 let isRet = isDeviceReturned(d.serial);
@@ -1076,7 +1176,6 @@ function renderSummaryTable() {
                 overallStatus = `<span class="status-badge status-returned">Fully Returned</span>`;
             }
         } else {
-            // Non-Serialized Qty-based Tracking
             let availableReturns = nonSerialReturnsMap[nKey] || 0;
             let returnedForThisIssue = 0;
             
@@ -1155,38 +1254,41 @@ function viewLogDevices(node, key) {
 }
 
 function deleteRecord(node, key) {
-    if(!checkSecurePassword()) return;
-    let target = (node === 'store_entries') ? entryData[key] : (node === 'store_received') ? receivedData[key] : (node === 'store_issues') ? issueData[key] : returnData[key];
-    if(confirm("Are you absolute sure you want to delete this operational log record?")) {
-        db.ref("deleted_backup").push({ node: node, data: target, deletedAt: firebase.database.ServerValue.TIMESTAMP });
-        db.ref(`${node}/${key}`).remove();
-        alert("Log Data Purged Successfully!");
-    }
+    requireSecurePassword(function() {
+        let target = (node === 'store_entries') ? entryData[key] : (node === 'store_received') ? receivedData[key] : (node === 'store_issues') ? issueData[key] : returnData[key];
+        if(confirm("Are you absolute sure you want to delete this operational log record?")) {
+            db.ref("deleted_backup").push({ node: node, data: target, deletedAt: firebase.database.ServerValue.TIMESTAMP });
+            db.ref(`${node}/${key}`).remove();
+            alert("Log Data Purged Successfully!");
+        }
+    });
 }
 
 function restoreData() {
-    if(!checkSecurePassword()) return;
-    let keys = Object.keys(deletedBackup);
-    if(keys.length === 0) {
-        alert("No deleted records available for historical restoration!");
-        return;
-    }
-    let lastK = keys[keys.length - 1];
-    let target = deletedBackup[lastK];
-    if(confirm(`Do you want to restore last deleted entry into '${target.node}'?`)) {
-        db.ref(target.node).push(target.data);
-        db.ref(`deleted_backup/${lastK}`).remove();
-        alert("Data Node Restored Successfully!");
-    }
+    requireSecurePassword(function() {
+        let keys = Object.keys(deletedBackup);
+        if(keys.length === 0) {
+            alert("No deleted records available for historical restoration!");
+            return;
+        }
+        let lastK = keys[keys.length - 1];
+        let target = deletedBackup[lastK];
+        if(confirm(`Do you want to restore last deleted entry into '${target.node}'?`)) {
+            db.ref(target.node).push(target.data);
+            db.ref(`deleted_backup/${lastK}`).remove();
+            alert("Data Node Restored Successfully!");
+        }
+    });
 }
 
 function openEditMasterModal(item, version) {
-    if(!checkSecurePassword()) return;
-    document.getElementById("oldItemNameHidden").value = item;
-    document.getElementById("oldVersionHidden").value = version;
-    document.getElementById("editModalItemName").value = item;
-    document.getElementById("editModalVersion").value = version;
-    document.getElementById("editMasterModal").style.display = "block";
+    requireSecurePassword(function() {
+        document.getElementById("oldItemNameHidden").value = item;
+        document.getElementById("oldVersionHidden").value = version;
+        document.getElementById("editModalItemName").value = item;
+        document.getElementById("editModalVersion").value = version;
+        document.getElementById("editMasterModal").style.display = "block";
+    });
 }
 function closeEditMasterModal() {
     document.getElementById("editMasterModal").style.display = "none";
@@ -1220,24 +1322,25 @@ function submitGlobalItemEdit() {
 }
 
 function openRowEditModal(node, key) {
-    if(!checkSecurePassword()) return;
-    let x = (node==='store_entries')?entryData[key]:(node==='store_received')?receivedData[key]:(node==='store_issues')?issueData[key]:returnData[key];
-    if(!x) return;
-    
-    document.getElementById("editNodeHidden").value = node;
-    document.getElementById("editKeyHidden").value = key;
-    let body = document.getElementById("rowEditFormBody");
-    body.innerHTML = "";
-    
-    Object.keys(x).forEach(f => {
-        if(f === 'devices') return;
-        let val = x[f] || "";
-        body.innerHTML += `<div>
-            <label style="font-weight:bold;text-transform:capitalize;display:block;">${f}:</label>
-            <input type="text" id="field_${f}" value="${val}" style="width:95%;">
-        </div>`;
+    requireSecurePassword(function() {
+        let x = (node==='store_entries')?entryData[key]:(node==='store_received')?receivedData[key]:(node==='store_issues')?issueData[key]:returnData[key];
+        if(!x) return;
+        
+        document.getElementById("editNodeHidden").value = node;
+        document.getElementById("editKeyHidden").value = key;
+        let body = document.getElementById("rowEditFormBody");
+        body.innerHTML = "";
+        
+        Object.keys(x).forEach(f => {
+            if(f === 'devices') return;
+            let val = x[f] || "";
+            body.innerHTML += `<div>
+                <label style="font-weight:bold;text-transform:capitalize;display:block;">${f}:</label>
+                <input type="text" id="field_${f}" value="${val}" style="width:95%;">
+            </div>`;
+        });
+        document.getElementById("globalRowEditModal").style.display = "block";
     });
-    document.getElementById("globalRowEditModal").style.display = "block";
 }
 function closeRowEditModal() {
     document.getElementById("globalRowEditModal").style.display = "none";
