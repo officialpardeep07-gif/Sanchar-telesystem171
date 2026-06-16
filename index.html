@@ -1,4 +1,4 @@
-<html>
+﻿<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -220,7 +220,6 @@
             <input type="text" id="issuePerson" placeholder="Person">
             <input type="text" id="issueParty" list="partyList" placeholder="Party Name">
             <input type="text" id="issueLocation" list="locationList" placeholder="Location">
-            <input type="text" id="issueInvoiceChallan" placeholder="Invoice/Challan No.">
             
             <select id="issuePurpose" onchange="toggleCustomPurposeField()">
                 <option value="">-- Select Purpose --</option>
@@ -231,7 +230,7 @@
                 <option value="Replace">Replace</option>
                 <option value="Self">Self (Type Custom)</option>
             </select>
-            <input type="text" id="customIssuePurpose" placeholder="Type Custom Purpose" style="display:none; margin:4px; padding:8px; border:1px solid #ccc; border-radius:4px;">
+            <input type="text" id="customIssuePurpose" placeholder="Type Custom Purpose" style="display:none;">
             
             <input type="date" id="issueDate">
             <input type="text" id="issueRemarks" placeholder="Remarks">
@@ -244,14 +243,14 @@
         <div class="header-actions" style="margin-top:25px">
             <div class="filter-group">
                 <input type="text" placeholder="Search..." onkeyup="searchTable(this,'issueTable')">
-                <label>From:</label><input type="date" id="issueFromDate" onchange="filterByDate('issueTable', 10, 'issueFromDate', 'issueToDate')">
-                <label>To:</label><input type="date" id="issueToDate" onchange="filterByDate('issueTable', 10, 'issueFromDate', 'issueToDate')">
+                <label>From:</label><input type="date" id="issueFromDate" onchange="filterByDate('issueTable', 9, 'issueFromDate', 'issueToDate')">
+                <label>To:</label><input type="date" id="issueToDate" onchange="filterByDate('issueTable', 9, 'issueFromDate', 'issueToDate')">
                 <button class="downloadBtn" onclick="downloadCSV('issueTable','Issue_Report.csv')">Download Issued</button>
             </div>
         </div>
         <table id="issueTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Invoice/Challan No.</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -264,7 +263,6 @@
             <input type="text" id="returnPerson" placeholder="Person">
             <input type="text" id="returnParty" list="partyList" placeholder="Party Name">
             <input type="text" id="returnLocation" list="locationList" placeholder="Location">
-            <input type="text" id="returnInvoiceChallan" placeholder="Invoice/Challan No.">
             
             <select id="returnPurpose" onchange="toggleCustomReturnPurposeField()">
                 <option value="">-- Select Purpose --</option>
@@ -290,14 +288,14 @@
         <div class="header-actions" style="margin-top:25px">
             <div class="filter-group">
                 <input type="text" placeholder="Search..." onkeyup="searchTable(this,'returnTable')">
-                <label>From:</label><input type="date" id="returnFromDate" onchange="filterByDate('returnTable', 10, 'returnFromDate', 'returnToDate')">
-                <label>To:</label><input type="date" id="returnToDate" onchange="filterByDate('returnTable', 10, 'returnFromDate', 'returnToDate')">
+                <label>From:</label><input type="date" id="returnFromDate" onchange="filterByDate('returnTable', 9, 'returnFromDate', 'returnToDate')">
+                <label>To:</label><input type="date" id="returnToDate" onchange="filterByDate('returnTable', 9, 'returnFromDate', 'returnToDate')">
                 <button class="downloadBtn" onclick="downloadCSV('returnTable','Return_Report.csv')">Download Returns</button>
             </div>
         </div>
         <table id="returnTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Invoice/Challan No.</th><th>Purpose</th><th>Status</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Status</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -341,7 +339,7 @@
 
 <div id="securityPasswordModal" class="modal">
     <div class="modal-content" style="width: 320px; text-align: center; margin: 15% auto;">
-        <h3>🔑 Security Verification</h3>
+        <h3>??? Security Verification</h3>
         <p style="font-size:13px; color:#555;">Please enter the security password to proceed:</p>
         <input type="password" id="securityPasswordInput" placeholder="Enter Security Password" style="width:90%; padding:10px; margin-bottom:10px;">
         <br>
@@ -353,7 +351,7 @@
 <div id="editMasterModal" class="modal">
     <div class="modal-content" style="width: 40%; text-align: center;">
         <span class="close" onclick="closeEditMasterModal()">&times;</span>
-        <h3>📝 Edit Item Details Globally</h3>
+        <h3>?? Edit Item Details Globally</h3>
         <p style="font-size:12px; color: #555;">Changing this item name will automatically update all logs globally across all categories.</p>
         <input type="hidden" id="oldItemNameHidden">
         <input type="hidden" id="oldVersionHidden">
@@ -372,7 +370,7 @@
 <div id="globalRowEditModal" class="modal">
     <div class="modal-content" style="width: 60%;">
         <span class="close" onclick="closeRowEditModal()">&times;</span>
-        <h3>🔄 Update Transaction Record Details</h3>
+        <h3>?? Update Transaction Record Details</h3>
         <input type="hidden" id="editNodeHidden">
         <input type="hidden" id="editKeyHidden">
         <div id="rowEditFormBody" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; max-height:450px; overflow-y:auto; padding:10px;">
@@ -499,6 +497,19 @@ function verifyOTP(){
     }
 }
 
+function saveNewCredentials() {
+    let newU = document.getElementById("newUsername").value.trim();
+    let newP = document.getElementById("newPassword").value.trim();
+    if(!newU || !newP) {
+        alert("Fields cannot be empty!");
+        return;
+    }
+    localStorage.setItem("store_user", newU);
+    localStorage.setItem("store_pass", newP);
+    alert("Credentials updated successfully!");
+    toggleCredentialChange(false);
+}
+
 const firebaseConfig={
     apiKey:"AIzaSyAJhKRS7D7mI57MuaF5CGH8_p6kIFO_uAE",
     authDomain:"poc-store-e1d14.firebaseapp.com",
@@ -622,6 +633,7 @@ function saveReceived() {
     document.getElementById("recDevicesContainer").innerHTML = "";
 }
 
+/* NEW HELPER FUNCTIONS TO PARSE AND PROCESS BULK EXCEL ENTRIES */
 function parseCSVHelper(text) {
     let lines = text.split(/\r?\n/);
     let result = [];
@@ -659,17 +671,11 @@ function processExcelBulkStockEntry() {
         
         let count = 0;
         rows.forEach(r => {
-            let itemKey = Object.keys(r).find(k => k.trim() === 'item');
-            let versionKey = Object.keys(r).find(k => k.trim() === 'version');
-            let qtyKey = Object.keys(r).find(k => k.trim() === 'qty');
-            let dateKey = Object.keys(r).find(k => k.trim() === 'date');
-            let remarksKey = Object.keys(r).find(k => k.trim() === 'remarks');
-
-            let item = itemKey ? r[itemKey] : "";
-            let version = versionKey ? r[versionKey] : "";
-            let qty = qtyKey ? parseInt(r[qtyKey]) : 0;
-            let date = dateKey ? r[dateKey] : new Date().toISOString().split('T')[0];
-            let remarks = remarksKey ? r[remarksKey] : "";
+            let item = r.item || "";
+            let version = r.version || "";
+            let qty = parseInt(r.qty) || 0;
+            let date = r.date || new Date().toISOString().split('T')[0];
+            let remarks = r.remarks || "";
             
             if(item && version && qty > 0) {
                 db.ref("store_entries").push({
@@ -706,21 +712,13 @@ function processExcelBulkReceived() {
         
         let count = 0;
         rows.forEach(r => {
-            let itemKey = Object.keys(r).find(k => k.trim() === 'item');
-            let versionKey = Object.keys(r).find(k => k.trim() === 'version');
-            let qtyKey = Object.keys(r).find(k => k.trim() === 'qty');
-            let billKey = Object.keys(r).find(k => k.trim() === 'billnumber' || k.trim() === 'bill_no');
-            let supplierKey = Object.keys(r).find(k => k.trim() === 'suppliername' || k.trim() === 'supplier');
-            let dateKey = Object.keys(r).find(k => k.trim() === 'date');
-            let remarksKey = Object.keys(r).find(k => k.trim() === 'remarks');
-
-            let item = itemKey ? r[itemKey] : "";
-            let version = versionKey ? r[versionKey] : "";
-            let qty = qtyKey ? parseInt(r[qtyKey]) : 0;
-            let billNumber = billKey ? r[billKey] : "";
-            let supplierName = supplierKey ? r[supplierKey] : "";
-            let date = dateKey ? r[dateKey] : new Date().toISOString().split('T')[0];
-            let remarks = remarksKey ? r[remarksKey] : "";
+            let item = r.item || "";
+            let version = r.version || "";
+            let qty = parseInt(r.qty) || 0;
+            let billNumber = r.billnumber || r.bill_no || "";
+            let supplierName = r.suppliername || r.supplier || "";
+            let date = r.date || new Date().toISOString().split('T')[0];
+            let remarks = r.remarks || "";
             
             if(item && version && qty > 0) {
                 db.ref("store_received").push({
@@ -985,11 +983,11 @@ function viewStockCategoryLogs(category, itemName, version) {
         dataset = Object.values(receivedData).filter(x => x.item === itemName && x.version === version);
     } else if(category === 'issue') {
         title.innerText = `Issued Logs: ${itemName} (${version})`;
-        headers = ["Sr.No", "Qty", "Person", "Party", "Location", "Invoice/Challan No.", "Purpose", "Date", "Remarks"];
+        headers = ["Sr.No", "Qty", "Person", "Party", "Location", "Purpose", "Date", "Remarks"];
         dataset = Object.values(issueData).filter(x => x.item === itemName && x.version === version);
     } else if(category === 'return') {
         title.innerText = `Returned Logs: ${itemName} (${version})`;
-        headers = ["Sr.No", "Qty", "Person", "Party", "Location", "Invoice/Challan No.", "Purpose", "Status", "Date", "Remarks"];
+        headers = ["Sr.No", "Qty", "Person", "Party", "Location", "Purpose", "Status", "Date", "Remarks"];
         dataset = Object.values(returnData).filter(x => x.item === itemName && x.version === version);
     }
     
@@ -1008,9 +1006,9 @@ function viewStockCategoryLogs(category, itemName, version) {
             } else if(category === 'received') {
                 tableHtml += `<td>${item.billNumber || '-'}</td><td>${item.supplierName || '-'}</td><td>${formattedDate}</td><td>${item.remarks || '-'}</td>`;
             } else if(category === 'issue') {
-                tableHtml += `<td>${item.person || '-'}</td><td>${item.party || '-'}</td><td>${item.location || '-'}</td><td>${item.invoiceChallan || '-'}</td><td>${item.purpose || '-'}</td><td>${formattedDate}</td><td>${item.remarks || '-'}</td>`;
+                tableHtml += `<td>${item.person || '-'}</td><td>${item.party || '-'}</td><td>${item.location || '-'}</td><td>${item.purpose || '-'}</td><td>${formattedDate}</td><td>${item.remarks || '-'}</td>`;
             } else if(category === 'return') {
-                tableHtml += `<td>${item.person || '-'}</td><td>${item.party || '-'}</td><td>${item.location || '-'}</td><td>${item.invoiceChallan || '-'}</td><td>${item.purpose || '-'}</td><td>${item.status}</td><td>${formattedDate}</td><td>${item.remarks || '-'}</td>`;
+                tableHtml += `<td>${item.person || '-'}</td><td>${item.party || '-'}</td><td>${item.location || '-'}</td><td>${item.purpose || '-'}</td><td>${item.status}</td><td>${formattedDate}</td><td>${item.remarks || '-'}</td>`;
             }
             tableHtml += `</tr>`;
         });
@@ -1072,7 +1070,6 @@ function saveGlobalIssues() {
     let person = document.getElementById("issuePerson").value.trim();
     let party = document.getElementById("issueParty").value.trim();
     let location = document.getElementById("issueLocation").value.trim();
-    let invoiceChallan = document.getElementById("issueInvoiceChallan").value.trim();
     let purposeSelect = document.getElementById("issuePurpose").value;
     let purpose = purposeSelect === "Self" ? document.getElementById("customIssuePurpose").value.trim() : purposeSelect;
     let date = document.getElementById("issueDate").value;
@@ -1123,7 +1120,7 @@ function saveGlobalIssues() {
             });
         });
         
-        validLogs.push({ item, version, qty, person, party, location, invoiceChallan, purpose, date, remarks, devices });
+        validLogs.push({ item, version, qty, person, party, location, purpose, date, remarks, devices });
     });
     
     if(hasError) {
@@ -1137,7 +1134,6 @@ function saveGlobalIssues() {
     document.getElementById("issuePerson").value = "";
     document.getElementById("issueParty").value = "";
     document.getElementById("issueLocation").value = "";
-    document.getElementById("issueInvoiceChallan").value = "";
     document.getElementById("issuePurpose").value = "";
     document.getElementById("customIssuePurpose").value = "";
     document.getElementById("customIssuePurpose").style.display = "none";
@@ -1173,7 +1169,6 @@ function saveGlobalReturns() {
     let person = document.getElementById("returnPerson").value.trim();
     let party = document.getElementById("returnParty").value.trim();
     let location = document.getElementById("returnLocation").value.trim();
-    let invoiceChallan = document.getElementById("returnInvoiceChallan").value.trim();
     let purposeSelect = document.getElementById("returnPurpose").value;
     let purpose = purposeSelect === "Self" ? document.getElementById("customReturnPurpose").value.trim() : purposeSelect;
     let status = document.getElementById("returnStatus").value;
@@ -1207,7 +1202,7 @@ function saveGlobalReturns() {
             return;
         }
         let devices = collectDeviceDetails(`${rId}_container`);
-        validLogs.push({ item, version, qty, person, party, location, invoiceChallan, purpose, status, date, remarks, devices });
+        validLogs.push({ item, version, qty, person, party, location, purpose, status, date, remarks, devices });
     });
     
     if(hasError) {
@@ -1221,7 +1216,6 @@ function saveGlobalReturns() {
     document.getElementById("returnPerson").value = "";
     document.getElementById("returnParty").value = "";
     document.getElementById("returnLocation").value = "";
-    document.getElementById("returnInvoiceChallan").value = "";
     document.getElementById("returnPurpose").value = "";
     document.getElementById("customReturnPurpose").value = "";
     document.getElementById("customReturnPurpose").style.display = "none";
@@ -1325,7 +1319,6 @@ function renderTables() {
         iBody.innerHTML += `<tr>
             <td>${idx}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.qty}</strong></td>
             <td>${x.person || '-'}</td><td>${x.party || '-'}</td><td>${x.location || '-'}</td>
-            <td><strong>${x.invoiceChallan || '-'}</strong></td>
             <td><span style="color:purple; font-weight:bold;">${x.purpose || '-'}</span></td><td>${x.remarks || '-'}</td>
             <td>${formatDateDDMMYYYY(x.date)}</td>
             <td><button class="detailsBtn" onclick="viewLogDevices('store_issues','${k}')">View (${(x.devices || []).length})</button></td>
@@ -1342,7 +1335,6 @@ function renderTables() {
         retBody.innerHTML += `<tr>
             <td>${idx}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.qty}</strong></td>
             <td>${x.person || '-'}</td><td>${x.party || '-'}</td><td>${x.location || '-'}</td>
-            <td><strong>${x.invoiceChallan || '-'}</strong></td>
             <td><span style="color:purple; font-weight:bold;">${x.purpose || '-'}</span></td>
             <td><span style="color:${x.status==='Ok'?'green':'red'}; font-weight:bold;">${x.status}</span></td>
             <td>${formatDateDDMMYYYY(x.date)}</td>
@@ -1487,7 +1479,7 @@ function deleteRecord(node, key) {
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
                 data: targetObj
             }).then(() => {
-                db.ref(`${node}/${key}`).remove();
+                db.ref(`${node}/${k}`).remove();
                 alert("Record deleted globally and backed up securely.");
             });
         }
