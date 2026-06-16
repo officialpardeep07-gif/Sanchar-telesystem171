@@ -50,6 +50,7 @@
         .status-party {background-color:#dc3545;}
         .status-na {background-color:#6c757d;}
         .tracking-link {color: #0066cc; text-decoration: underline; cursor: pointer;}
+        .imei-mode-select {padding: 4px; font-weight: bold; margin: 4px; border: 1px solid #002b5c; border-radius: 4px;}
     </style>
 </head>
 <body>
@@ -966,27 +967,55 @@ function addIssueRow() {
         
         <input type="number" class="issueQty" placeholder="Issued Qty" style="width:100px;" oninput="triggerRowDeviceFields('${id}')">
         
-        <div class="liveImeiSelectionWrapper" style="margin-top:10px; display:none;">
+        <select class="imei-mode-select" onchange="toggleImeiMode('${id}', this.value)">
+            <option value="auto">Auto IMEI Selection</option>
+            <option value="manual">Manual IMEI Type</option>
+        </select>
+
+        <div class="liveImeiSelectionWrapper" id="autoWrapper_${id}" style="margin-top:10px; display:none;">
             <span style="font-size:12px; color:#002b5c; font-weight:bold;">✓ Select Serial numbers from active live inventory pool:</span>
             <div class="live-imei-box classLiveImeiBox"></div>
+        </div>
+
+        <div class="manualImeiWrapper" id="manualWrapper_${id}" style="margin-top:10px; display:none;">
+            <span style="font-size:12px; color:#c66000; font-weight:bold;">✍ Enter Serial numbers manually (separated by commas):</span><br>
+            <input type="text" class="manualSerialsInput" placeholder="e.g. SN123, SN124, SN125" style="width:90%">
         </div>
     </div>`;
     document.getElementById("issueRowsContainer").insertAdjacentHTML('beforeend', html);
 }
 
+function toggleImeiMode(rowId, mode) {
+    let autoWrapper = document.getElementById(`autoWrapper_${rowId}`);
+    let manualWrapper = document.getElementById(`manualWrapper_${rowId}`);
+    
+    if(mode === "manual") {
+        autoWrapper.style.display = "none";
+        manualWrapper.style.display = "block";
+    } else {
+        manualWrapper.style.display = "none";
+        loadRowLiveIMEIs(rowId);
+    }
+}
+
 function triggerRowDeviceFields(rowId) {
-    loadRowLiveIMEIs(rowId);
+    let rowObj = document.getElementById(rowId);
+    let mode = rowObj.querySelector(".imei-mode-select").value;
+    if(mode === "auto") {
+        loadRowLiveIMEIs(rowId);
+    }
 }
 
 function loadRowLiveIMEIs(rowId) {
     let rowObj = document.getElementById(rowId);
+    let mode = rowObj.querySelector(".imei-mode-select").value;
     let item = rowObj.querySelector(".issueItem").value.trim();
     let version = rowObj.querySelector(".issueVersion").value.trim();
     let qty = parseInt(rowObj.querySelector(".issueQty").value) || 0;
     let wrapper = rowObj.querySelector(".liveImeiSelectionWrapper");
     let box = rowObj.querySelector(".classLiveImeiBox");
     
-    if(!item || !version || qty <= 0) {
+    if(mode !== "auto" || !item || !version || qty <= 0) {
         wrapper.style.display = "none";
         box.innerHTML = "";
         return;
@@ -1065,16 +1094,34 @@ function saveGlobalIssues() {
         let item = r.querySelector(".issueItem").value.trim();
         let version = r.querySelector(".issueVersion").value.trim();
         let qty = parseInt(r.querySelector(".issueQty").value) || 0;
+        let mode = r.querySelector(".imei-mode-select").value;
         
         if(item && version && qty > 0) {
             let devices = [];
-            r.querySelectorAll(".chkSerialItem:checked").forEach(chk => {
-                devices.push({
-                    serial: chk.value,
-                    imei1: chk.getAttribute("data-imei1") || "",
-                    imei2: chk.getAttribute("data-imei2") || ""
+            
+            if(mode === "auto") {
+                r.querySelectorAll(".chkSerialItem:checked").forEach(chk => {
+                    devices.push({
+                        serial: chk.value,
+                        imei1: chk.getAttribute("data-imei1") || "",
+                        imei2: chk.getAttribute("data-imei2") || ""
+                    });
                 });
-            });
+            } else {
+                let manualInput = r.querySelector(".manualSerialsInput").value.trim();
+                if(manualInput) {
+                    let serialsArray = manualInput.split(",");
+                    serialsArray.forEach(s => {
+                        if(s.trim()) {
+                            devices.push({
+                                serial: s.trim(),
+                                imei1: "",
+                                imei2: ""
+                            });
+                        }
+                    });
+                }
+            }
             
             db.ref("store_issues").push({
                 item: item, version: version, qty: qty,
