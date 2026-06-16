@@ -1,4 +1,5 @@
-﻿<html>
+<!DOCTYPE html>
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
@@ -339,7 +340,7 @@
 
 <div id="securityPasswordModal" class="modal">
     <div class="modal-content" style="width: 320px; text-align: center; margin: 15% auto;">
-        <h3>??? Security Verification</h3>
+        <h3>🔒 Security Verification</h3>
         <p style="font-size:13px; color:#555;">Please enter the security password to proceed:</p>
         <input type="password" id="securityPasswordInput" placeholder="Enter Security Password" style="width:90%; padding:10px; margin-bottom:10px;">
         <br>
@@ -351,7 +352,7 @@
 <div id="editMasterModal" class="modal">
     <div class="modal-content" style="width: 40%; text-align: center;">
         <span class="close" onclick="closeEditMasterModal()">&times;</span>
-        <h3>?? Edit Item Details Globally</h3>
+        <h3>📝 Edit Item Details Globally</h3>
         <p style="font-size:12px; color: #555;">Changing this item name will automatically update all logs globally across all categories.</p>
         <input type="hidden" id="oldItemNameHidden">
         <input type="hidden" id="oldVersionHidden">
@@ -370,7 +371,7 @@
 <div id="globalRowEditModal" class="modal">
     <div class="modal-content" style="width: 60%;">
         <span class="close" onclick="closeRowEditModal()">&times;</span>
-        <h3>?? Update Transaction Record Details</h3>
+        <h3>✏️ Update Transaction Record Details</h3>
         <input type="hidden" id="editNodeHidden">
         <input type="hidden" id="editKeyHidden">
         <div id="rowEditFormBody" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; max-height:450px; overflow-y:auto; padding:10px;">
@@ -633,7 +634,6 @@ function saveReceived() {
     document.getElementById("recDevicesContainer").innerHTML = "";
 }
 
-/* NEW HELPER FUNCTIONS TO PARSE AND PROCESS BULK EXCEL ENTRIES */
 function parseCSVHelper(text) {
     let lines = text.split(/\r?\n/);
     let result = [];
@@ -668,7 +668,6 @@ function processExcelBulkStockEntry() {
             alert("No entries found or bad structure. Kindly inspect headers!");
             return;
         }
-        
         let count = 0;
         rows.forEach(r => {
             let item = r.item || "";
@@ -676,7 +675,6 @@ function processExcelBulkStockEntry() {
             let qty = parseInt(r.qty) || 0;
             let date = r.date || new Date().toISOString().split('T')[0];
             let remarks = r.remarks || "";
-            
             if(item && version && qty > 0) {
                 db.ref("store_entries").push({
                     item: item.trim(),
@@ -689,7 +687,7 @@ function processExcelBulkStockEntry() {
                 count++;
             }
         });
-        alert(`Successfully uploaded ${count} Stock Entries from file into the Cloud database!`);
+        alert(`Successfully uploaded ${count} Stock Entries from file!`);
         fileInput.value = "";
     };
     reader.readAsText(file);
@@ -709,7 +707,6 @@ function processExcelBulkReceived() {
             alert("No logs found or bad CSV format headers!");
             return;
         }
-        
         let count = 0;
         rows.forEach(r => {
             let item = r.item || "";
@@ -719,7 +716,6 @@ function processExcelBulkReceived() {
             let supplierName = r.suppliername || r.supplier || "";
             let date = r.date || new Date().toISOString().split('T')[0];
             let remarks = r.remarks || "";
-            
             if(item && version && qty > 0) {
                 db.ref("store_received").push({
                     item: item.trim(),
@@ -734,7 +730,7 @@ function processExcelBulkReceived() {
                 count++;
             }
         });
-        alert(`Successfully uploaded ${count} Purchase/Received entries into the Cloud database!`);
+        alert(`Successfully uploaded ${count} Purchase/Received entries!`);
         fileInput.value = "";
     };
     reader.readAsText(file);
@@ -768,7 +764,6 @@ function handleItemSelectionChange(itemInputId, targetDatalistId) {
     if(!dl) return;
     dl.innerHTML = "";
     if(!itemName) return;
-    
     Object.keys(globalCalculatedStock).forEach(key => {
         let [n, v] = key.split("|||");
         if(n.toLowerCase() === itemName.toLowerCase()) {
@@ -782,25 +777,22 @@ function handleRowItemSelectionChange(rowId) {
     let itemInput = rowObj.querySelector(".issueItem, .returnItem");
     let vDL = rowObj.querySelector(".classVersionDL");
     if(!itemInput || !vDL) return;
-    
     let itemName = itemInput.value.trim();
     vDL.innerHTML = "";
     if(!itemName) return;
-    
     Object.keys(globalCalculatedStock).forEach(key => {
         let [n, v] = key.split("|||");
         if(n.toLowerCase() === itemName.toLowerCase()) {
             vDL.innerHTML += `<option value="${v}">`;
         }
     });
-    
     if(rowId.startsWith("issueRow_")) {
         loadRowLiveIMEIs(rowId);
     }
 }
 
 function formatDateDDMMYYYY(dateStr) {
-    if(!dateStr) return "";
+    if(!dateStr) return "-";
     let d = new Date(dateStr);
     if(isNaN(d.getTime())) return dateStr;
     let day = String(d.getDate()).padStart(2, '0');
@@ -814,48 +806,42 @@ function handleDeviceInputsTrigger(qtyIdOrVal, checkId, containerId) {
     let qty = qtyInput ? (parseInt(qtyInput.value) || 0) : (parseInt(qtyIdOrVal) || 0);
     let check = document.getElementById(checkId);
     let container = document.getElementById(containerId);
-    
     if(!container) return;
     if(!check || !check.checked || qty <= 0) {
         container.innerHTML = "";
         return;
     }
-    
     let existingRows = container.querySelectorAll(".device-entry-row").length;
     if(existingRows === qty) return;
-    
     let currentDevices = [];
     container.querySelectorAll(".device-entry-row").forEach(r => {
-        currentDevices.push({
-            serial: r.querySelector(".devSerial").value.trim(),
-            imei1: r.querySelector(".devImei1").value.trim(),
-            imei2: r.querySelector(".devImei2").value.trim()
+        currentDevices.push({ 
+            serial: r.querySelector(".devSerial").value.trim(), 
+            imei1: r.querySelector(".devImei1").value.trim(), 
+            imei2: r.querySelector(".devImei2").value.trim() 
         });
     });
-    
     container.innerHTML = "";
     for(let i = 0; i < qty; i++) {
         let dev = currentDevices[i] || { serial: "", imei1: "", imei2: "" };
         container.innerHTML += `
-            <div class="device-entry-row" data-index="${i}">
-                <span>#${i+1}</span>
-                <input type="text" class="devSerial" placeholder="Serial No" value="${dev.serial}" required>
-                <input type="text" class="devImei1" placeholder="IMEI 1" value="${dev.imei1}">
-                <input type="text" class="devImei2" placeholder="IMEI 2" value="${dev.imei2}">
-            </div>`;
+        <div class="device-entry-row" data-index="${i}">
+            <span>#${i+1}</span>
+            <input type="text" class="devSerial" placeholder="Serial No" value="${dev.serial}" required>
+            <input type="text" class="devImei1" placeholder="IMEI 1" value="${dev.imei1}">
+            <input type="text" class="devImei2" placeholder="IMEI 2" value="${dev.imei2}">
+        </div>`;
     }
 }
 
 function importBulkImeisFromExcel(qtyIdOrVal, checkId, containerId, fileInput) {
     let file = fileInput.files[0];
     if(!file) return;
-    
     let reader = new FileReader();
     reader.onload = function(e) {
         let text = e.target.result;
         let lines = text.split(/\r?\n/);
         let deviceList = [];
-        
         for(let i=0; i<lines.length; i++) {
             let ln = lines[i].trim();
             if(!ln) continue;
@@ -863,396 +849,309 @@ function importBulkImeisFromExcel(qtyIdOrVal, checkId, containerId, fileInput) {
             let s = parts[0] ? parts[0].replace(/^["']|["']$/g, '').trim() : "";
             let im1 = parts[1] ? parts[1].replace(/^["']|["']$/g, '').trim() : "";
             let im2 = parts[2] ? parts[2].replace(/^["']|["']$/g, '').trim() : "";
-            
             if(s.toLowerCase() === "serialno" || s.toLowerCase() === "serial" || s.toLowerCase() === "serial number") {
-                continue; 
+                continue;
             }
-            if(s) {
-                deviceList.push({ serial: s, imei1: im1, imei2: im2 });
-            }
+            if(s) deviceList.push({ serial: s, imei1: im1, imei2: im2 });
         }
-        
         if(deviceList.length === 0) {
             alert("No valid rows matched inside Excel/CSV file!");
             return;
         }
-        
         let qtyInput = document.getElementById(qtyIdOrVal);
-        if(qtyInput) {
-            qtyInput.value = deviceList.length;
-        }
-        
+        if(qtyInput) qtyInput.value = deviceList.length;
         let check = document.getElementById(checkId);
         if(check) check.checked = true;
         
         let container = document.getElementById(containerId);
         container.innerHTML = "";
-        
         deviceList.forEach((dev, i) => {
             container.innerHTML += `
-                <div class="device-entry-row" data-index="${i}">
-                    <span>#${i+1}</span>
-                    <input type="text" class="devSerial" placeholder="Serial No" value="${dev.serial}" required>
-                    <input type="text" class="devImei1" placeholder="IMEI 1" value="${dev.imei1}">
-                    <input type="text" class="devImei2" placeholder="IMEI 2" value="${dev.imei2}">
-                </div>`;
+            <div class="device-entry-row" data-index="${i}">
+                <span>#${i+1}</span>
+                <input type="text" class="devSerial" placeholder="Serial No" value="${dev.serial}" required>
+                <input type="text" class="devImei1" placeholder="IMEI 1" value="${dev.imei1}">
+                <input type="text" class="devImei2" placeholder="IMEI 2" value="${dev.imei2}">
+            </div>`;
         });
-        
-        alert(`Successfully imported ${deviceList.length} serials/IMEIs! You can now fill out the remaining form details and save.`);
+        alert(`Successfully imported ${deviceList.length} serials into list container layout!`);
         fileInput.value = "";
     };
     reader.readAsText(file);
 }
 
 function collectDeviceDetails(containerId) {
-    let arr = [];
+    let list = [];
     let container = document.getElementById(containerId);
-    if(!container) return arr;
-    container.querySelectorAll(".device-entry-row").forEach(r => {
-        let s = r.querySelector(".devSerial").value.trim();
-        let i1 = r.querySelector(".devImei1").value.trim();
-        let i2 = r.querySelector(".devImei2").value.trim();
-        if(s) arr.push({ serial: s, imei1: i1, imei2: i2 });
+    if(!container) return list;
+    container.querySelectorAll(".device-entry-row").forEach(row => {
+        let s = row.querySelector(".devSerial").value.trim();
+        let i1 = row.querySelector(".devImei1").value.trim();
+        let i2 = row.querySelector(".devImei2").value.trim();
+        if(s) list.push({ serial: s, imei1: i1, imei2: i2 });
     });
-    return arr;
-}
-
-function getLiveStockPool(targetItem, targetVersion) {
-    let pool = [];
-    const addInward = (dataObj) => {
-        Object.values(dataObj).forEach(x => {
-            if(x.item === targetItem && x.version === targetVersion && x.devices) {
-                x.devices.forEach(d => {
-                    if(d.serial && !pool.some(p => p.serial === d.serial)) {
-                        pool.push({ serial: d.serial, imei1: d.imei1 || '', imei2: d.imei2 || '' });
-                    }
-                });
-            }
-        });
-    };
-    addInward(entryData);
-    addInward(receivedData);
-    
-    Object.values(issueData).forEach(x => {
-        if(x.item === targetItem && x.version === targetVersion && x.devices) {
-            x.devices.forEach(d => {
-                pool = pool.filter(p => p.serial !== d.serial);
-            });
-        }
-    });
-    
-    Object.values(returnData).forEach(x => {
-        if(x.item === targetItem && x.version === targetVersion && x.status === "Ok" && x.devices) {
-            x.devices.forEach(d => {
-                if(d.serial && !pool.some(p => p.serial === d.serial)) {
-                    pool.push({ serial: d.serial, imei1: d.imei1 || '', imei2: d.imei2 || '' });
-                }
-            });
-        }
-    });
-    return pool;
-}
-
-function isDeviceReturned(serial) {
-    if(!serial) return false;
-    let isRet = false;
-    Object.values(returnData).forEach(x => {
-        if(x.status === "Ok" && x.devices) {
-            x.devices.forEach(d => {
-                if(d.serial && d.serial.trim().toLowerCase() === serial.trim().toLowerCase()) isRet = true;
-            });
-        }
-    });
-    return isRet;
-}
-
-function viewStockCategoryLogs(category, itemName, version) {
-    let body = document.getElementById("modalBody");
-    let title = document.getElementById("modalTitle");
-    body.innerHTML = "";
-    let dataset = [];
-    let headers = [];
-    
-    if(category === 'entry') {
-        title.innerText = `Stock Entry Logs: ${itemName} (${version})`;
-        headers = ["Sr.No", "Qty", "Date", "Remarks"];
-        dataset = Object.values(entryData).filter(x => x.item === itemName && x.version === version);
-    } else if(category === 'received') {
-        title.innerText = `Purchase / Received Logs: ${itemName} (${version})`;
-        headers = ["Sr.No", "Qty", "Bill No", "Supplier", "Date", "Remarks"];
-        dataset = Object.values(receivedData).filter(x => x.item === itemName && x.version === version);
-    } else if(category === 'issue') {
-        title.innerText = `Issued Logs: ${itemName} (${version})`;
-        headers = ["Sr.No", "Qty", "Person", "Party", "Location", "Purpose", "Date", "Remarks"];
-        dataset = Object.values(issueData).filter(x => x.item === itemName && x.version === version);
-    } else if(category === 'return') {
-        title.innerText = `Returned Logs: ${itemName} (${version})`;
-        headers = ["Sr.No", "Qty", "Person", "Party", "Location", "Purpose", "Status", "Date", "Remarks"];
-        dataset = Object.values(returnData).filter(x => x.item === itemName && x.version === version);
-    }
-    
-    if(dataset.length === 0) {
-        body.innerHTML = "<p style='color:red;font-weight:bold;padding:10px;'>No direct tracking log segments found under this category.</p>";
-    } else {
-        let tableHtml = `<table><thead><tr>`;
-        headers.forEach(h => tableHtml += `<th>${h}</th>`);
-        tableHtml += `</tr></thead><tbody>`;
-        
-        dataset.forEach((item, idx) => {
-            let formattedDate = formatDateDDMMYYYY(item.date);
-            tableHtml += `<tr><td>${idx+1}</td><td><strong>${item.qty}</strong></td>`;
-            if(category === 'entry') {
-                tableHtml += `<td>${formattedDate}</td><td>${item.remarks || '-'}</td>`;
-            } else if(category === 'received') {
-                tableHtml += `<td>${item.billNumber || '-'}</td><td>${item.supplierName || '-'}</td><td>${formattedDate}</td><td>${item.remarks || '-'}</td>`;
-            } else if(category === 'issue') {
-                tableHtml += `<td>${item.person || '-'}</td><td>${item.party || '-'}</td><td>${item.location || '-'}</td><td>${item.purpose || '-'}</td><td>${formattedDate}</td><td>${item.remarks || '-'}</td>`;
-            } else if(category === 'return') {
-                tableHtml += `<td>${item.person || '-'}</td><td>${item.party || '-'}</td><td>${item.location || '-'}</td><td>${item.purpose || '-'}</td><td>${item.status}</td><td>${formattedDate}</td><td>${item.remarks || '-'}</td>`;
-            }
-            tableHtml += `</tr>`;
-        });
-        tableHtml += `</tbody></table>`;
-        body.innerHTML = tableHtml;
-    }
-    document.getElementById("detailsModal").style.display = "block";
+    return list;
 }
 
 function addIssueRow() {
     issueRowCount++;
-    let container = document.getElementById("issueRowsContainer");
-    let rowId = `issueRow_${issueRowCount}`;
+    let id = `issueRow_${issueRowCount}`;
     let html = `
-        <div class="dynamic-item-row" id="${rowId}">
-            <button class="remove-row-btn" onclick="removeDynamicRow('${rowId}')">X</button>
-            <strong>Item Category Match:</strong><br>
-            <input type="text" class="issueItem" list="itemList" placeholder="Item Name" onchange="handleRowItemSelectionChange('${rowId}')">
-            <input type="text" class="issueVersion" list="${rowId}_vDL" placeholder="Version" onchange="loadRowLiveIMEIs('${rowId}')" onkeyup="loadRowLiveIMEIs('${rowId}')">
-            <datalist id="${rowId}_vDL" class="classVersionDL"></datalist>
-            <input type="number" class="issueQty" placeholder="Issue Qty">
-            <div style="margin:10px 4px; font-weight:bold; color:#002b5c;">
-                 Select Available Serial/IMEI from Live Stock:
-                <div class="live-imei-box classLiveContainer">
-                    <p style="color:#888; font-style:italic; padding:5px;">Please select Item Name and Version first...</p>
-                </div>
-            </div>
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', html);
-}
-
-function loadRowLiveIMEIs(rowId) {
-    let rowObj = document.getElementById(rowId);
-    let item = rowObj.querySelector(".issueItem").value.trim();
-    let version = rowObj.querySelector(".issueVersion").value.trim();
-    let container = rowObj.querySelector(".classLiveContainer");
-    if(!item || !version) {
-        container.innerHTML = `<p style="color:#888; font-style:italic; padding:5px;">Please select Item Name and Version first...</p>`;
-        return;
-    }
-    let availablePool = getLiveStockPool(item, version);
-    if(availablePool.length === 0) {
-        container.innerHTML = `<p style="color:red; font-style:italic; padding:5px;">No active serialized stock available in store!</p>`;
-        return;
-    }
-    container.innerHTML = "";
-    availablePool.forEach((p, idx) => {
-        container.innerHTML += `
-            <label class="live-imei-item">
-                <input type="checkbox" class="issue-imei-cb" value="${p.serial}" data-imei1="${p.imei1}" data-imei2="${p.imei2}">
-                <span><strong>S/N:</strong> ${p.serial} ${p.imei1?`| <strong>I1:</strong> ${p.imei1}`:''} ${p.imei2?`| <strong>I2:</strong> ${p.imei2}`:''}</span>
-            </label>
-        `;
-    });
-}
-
-function saveGlobalIssues() {
-    let person = document.getElementById("issuePerson").value.trim();
-    let party = document.getElementById("issueParty").value.trim();
-    let location = document.getElementById("issueLocation").value.trim();
-    let purposeSelect = document.getElementById("issuePurpose").value;
-    let purpose = purposeSelect === "Self" ? document.getElementById("customIssuePurpose").value.trim() : purposeSelect;
-    let date = document.getElementById("issueDate").value;
-    let remarks = document.getElementById("issueRemarks").value.trim();
-    
-    if(!person || !party || !purpose || !date) {
-        alert("Please map all general workflow parameters (Person, Party, Purpose, Date)!");
-        return;
-    }
-    
-    let rows = document.querySelectorAll("#issueRowsContainer .dynamic-item-row");
-    if(rows.length === 0) {
-        alert("Please configure at least one item mapping!");
-        return;
-    }
-    
-    let validLogs = [];
-    let hasError = false;
-    let errorMessage = "";
-    
-    rows.forEach(row => {
-        if(hasError) return;
-        let item = row.querySelector(".issueItem").value.trim();
-        let version = row.querySelector(".issueVersion").value.trim();
-        let qty = parseInt(row.querySelector(".issueQty").value) || 0;
-        
-        if(!item || !version || qty <= 0) {
-            hasError = true;
-            errorMessage = "Please enter valid configurations and quantities!";
-            return;
-        }
-        
-        let stockKey = item + "|||" + version;
-        let availableStock = globalCalculatedStock[stockKey] || 0;
-        if (qty > availableStock) {
-            hasError = true;
-            errorMessage = `Error: Deficit Stock! "${item} (${version})" only has ${availableStock} units left.`;
-            return;
-        }
-        
-        let devices = [];
-        let checkboxes = row.querySelectorAll(".issue-imei-cb:checked");
-        checkboxes.forEach(cb => {
-            devices.push({
-                serial: cb.value,
-                imei1: cb.getAttribute("data-imei1") || "",
-                imei2: cb.getAttribute("data-imei2") || ""
-            });
-        });
-        
-        validLogs.push({ item, version, qty, person, party, location, purpose, date, remarks, devices });
-    });
-    
-    if(hasError) {
-        alert(errorMessage);
-        return;
-    }
-    
-    validLogs.forEach(log => db.ref("store_issues").push(log));
-    alert("Issues Saved Successfully!");
-    
-    document.getElementById("issuePerson").value = "";
-    document.getElementById("issueParty").value = "";
-    document.getElementById("issueLocation").value = "";
-    document.getElementById("issuePurpose").value = "";
-    document.getElementById("customIssuePurpose").value = "";
-    document.getElementById("customIssuePurpose").style.display = "none";
-    document.getElementById("issueRemarks").value = "";
-    document.getElementById("issueRowsContainer").innerHTML = "";
-    addIssueRow();
+    <div class="dynamic-item-row" id="${id}">
+        <button class="remove-row-btn" onclick="removeDynamicRow('${id}')">X Remove</button>
+        <strong>Item Set #${issueRowCount}:</strong><br>
+        <input type="text" class="issueItem" list="itemList" placeholder="Item Name" onchange="handleRowItemSelectionChange('${id}')">
+        <input type="text" class="issueVersion" list="vDL_${id}" placeholder="Version">
+        <datalist id="vDL_${id}" class="classVersionDL"></datalist>
+        <input type="number" class="issueQty" placeholder="Qty" oninput="handleRowDeviceInputs('${id}')">
+        <label class="imei-toggle-wrap"><input type="checkbox" class="issueImeiCheck" onchange="handleRowDeviceInputs('${id}')"> Enter Device details</label>
+        <div class="live-imei-box" style="display:none;"></div>
+        <div class="row-devices-container" style="margin-top:10px"></div>
+    </div>`;
+    document.getElementById("issueRowsContainer").insertAdjacentHTML("beforeend", html);
 }
 
 function addReturnRow() {
     returnRowCount++;
-    let container = document.getElementById("returnRowsContainer");
-    let rowId = `returnRow_${returnRowCount}`;
+    let id = `returnRow_${returnRowCount}`;
     let html = `
-        <div class="dynamic-item-row" id="${rowId}">
-            <button class="remove-row-btn" onclick="removeDynamicRow('${rowId}')">X</button>
-            <strong>Return Log Details:</strong><br>
-            <input type="text" class="returnItem" list="itemList" placeholder="Item Name" onchange="handleRowItemSelectionChange('${rowId}')">
-            <input type="text" class="returnVersion" list="${rowId}_vDL" placeholder="Version">
-            <datalist id="${rowId}_vDL" class="classVersionDL"></datalist>
-            <input type="number" class="returnQty" placeholder="Qty" oninput="handleDeviceInputsTrigger('${rowId}_qty', '${rowId}_check', '${rowId}_container')" id="${rowId}_qty">
-            <br>
-            <label class="imei-toggle-wrap">
-                <input type="checkbox" id="${rowId}_check" onchange="handleDeviceInputsTrigger('${rowId}_qty', '${rowId}_check', '${rowId}_container')"> 
-                Enter Return Device Details (Serial/IMEI)
-            </label>
-            <div id="${rowId}_container" style="margin-top:10px"></div>
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', html);
+    <div class="dynamic-item-row" id="${id}">
+        <button class="remove-row-btn" onclick="removeDynamicRow('${id}')">X Remove</button>
+        <strong>Item Set #${returnRowCount}:</strong><br>
+        <input type="text" class="returnItem" list="itemList" placeholder="Item Name" onchange="handleRowItemSelectionChange('${id}')">
+        <input type="text" class="returnVersion" list="vDL_${id}" placeholder="Version">
+        <datalist id="vDL_${id}" class="classVersionDL"></datalist>
+        <input type="number" class="returnQty" placeholder="Qty" oninput="handleRowDeviceInputs('${id}')">
+        <label class="imei-toggle-wrap"><input type="checkbox" class="returnImeiCheck" onchange="handleRowDeviceInputs('${id}')"> Enter Device details</label>
+        <div class="row-devices-container" style="margin-top:10px"></div>
+    </div>`;
+    document.getElementById("returnRowsContainer").insertAdjacentHTML("beforeend", html);
+}
+
+function removeDynamicRow(id) {
+    let el = document.getElementById(id);
+    if(el) el.remove();
+}
+
+function handleRowDeviceInputs(id) {
+    let row = document.getElementById(id);
+    let qty = parseInt(row.querySelector(".issueQty, .returnQty").value) || 0;
+    let check = row.querySelector(".issueImeiCheck, .returnImeiCheck").checked;
+    let container = row.querySelector(".row-devices-container");
+    if(!check || qty <= 0) {
+        container.innerHTML = "";
+        return;
+    }
+    container.innerHTML = "";
+    for(let i=0; i<qty; i++) {
+        container.innerHTML += `
+        <div class="device-entry-row">
+            <span>#${i+1}</span>
+            <input type="text" class="devSerial" placeholder="Serial No" required>
+            <input type="text" class="devImei1" placeholder="IMEI 1">
+            <input type="text" class="devImei2" placeholder="IMEI 2">
+        </div>`;
+    }
+}
+
+function loadRowLiveIMEIs(id) {
+    let row = document.getElementById(id);
+    let item = row.querySelector(".issueItem").value.trim();
+    let box = row.querySelector(".live-imei-box");
+    if(!item) { box.style.display="none"; return; }
+    box.innerHTML = "Loading available live devices...";
+    box.style.display = "block";
+    
+    // Scan matching live items
+    setTimeout(() => {
+        let list = getLiveDevicesList(item);
+        if(list.length === 0) {
+            box.innerHTML = "No live items found in database for this item.";
+        } else {
+            box.innerHTML = "<strong>Available Live Serials:</strong><br>";
+            list.forEach(d => {
+                box.innerHTML += `<div class="live-imei-item">📌 S/N: ${d.serial} ${d.imei1 ? '| IMEI: '+d.imei1 : ''}</div>`;
+            });
+        }
+    }, 200);
+}
+
+function getLiveDevicesList(itemName) {
+    let live = [];
+    const collect = (src) => {
+        Object.values(src).forEach(x => {
+            if(x.item && x.item.trim().toLowerCase() === itemName.toLowerCase() && x.devices) {
+                x.devices.forEach(d => live.push(d));
+            }
+        });
+    };
+    collect(entryData); collect(receivedData);
+    return live;
+}
+
+function saveGlobalIssues() {
+    let p = document.getElementById("issuePerson").value.trim();
+    let party = document.getElementById("issueParty").value.trim();
+    let loc = document.getElementById("issueLocation").value.trim();
+    let prp = document.getElementById("issuePurpose").value;
+    if(prp === "Self") prp = document.getElementById("customIssuePurpose").value.trim();
+    let dt = document.getElementById("issueDate").value;
+    let rem = document.getElementById("issueRemarks").value.trim();
+    
+    if(!party || !dt || !prp) {
+        alert("Please fill General Details (Party, Purpose, Date)!");
+        return;
+    }
+    
+    let container = document.getElementById("issueRowsContainer");
+    let rows = container.querySelectorAll(".dynamic-item-row");
+    let validCount = 0;
+    
+    rows.forEach(r => {
+        let item = r.querySelector(".issueItem").value.trim();
+        let v = r.querySelector(".issueVersion").value.trim();
+        let qty = parseInt(r.querySelector(".issueQty").value) || 0;
+        if(item && v && qty > 0) {
+            let devs = [];
+            r.querySelectorAll(".device-entry-row").forEach(dr => {
+                let s = dr.querySelector(".devSerial").value.trim();
+                if(s) devs.push({ serial: s, imei1: dr.querySelector(".devImei1").value.trim(), imei2: dr.querySelector(".devImei2").value.trim() });
+            });
+            db.ref("store_issues").push({
+                item: item, version: v, qty: qty, person: p, party: party, location: loc, purpose: prp, date: dt, remarks: rem, devices: devs
+            });
+            validCount++;
+        }
+    });
+    
+    if(validCount > 0) {
+        alert(`Successfully saved ${validCount} items to Issue log!`);
+        container.innerHTML = "";
+        document.getElementById("issuePerson").value = "";
+        document.getElementById("issueParty").value = "";
+        document.getElementById("issueLocation").value = "";
+        document.getElementById("issuePurpose").value = "";
+        document.getElementById("customIssuePurpose").value = "";
+        document.getElementById("customIssuePurpose").style.display = "none";
+        document.getElementById("issueDate").value = "";
+        document.getElementById("issueRemarks").value = "";
+        addIssueRow();
+    } else {
+        alert("No valid rows filled to save!");
+    }
 }
 
 function saveGlobalReturns() {
-    let person = document.getElementById("returnPerson").value.trim();
+    let p = document.getElementById("returnPerson").value.trim();
     let party = document.getElementById("returnParty").value.trim();
-    let location = document.getElementById("returnLocation").value.trim();
-    let purposeSelect = document.getElementById("returnPurpose").value;
-    let purpose = purposeSelect === "Self" ? document.getElementById("customReturnPurpose").value.trim() : purposeSelect;
+    let loc = document.getElementById("returnLocation").value.trim();
+    let prp = document.getElementById("returnPurpose").value;
+    if(prp === "Self") prp = document.getElementById("customReturnPurpose").value.trim();
     let status = document.getElementById("returnStatus").value;
-    let date = document.getElementById("returnDate").value;
-    let remarks = document.getElementById("returnRemarks").value.trim();
+    let dt = document.getElementById("returnDate").value;
+    let rem = document.getElementById("returnRemarks").value.trim();
     
-    if(!person || !party || !purpose || !date) {
-        alert("Please set general metadata validation tags!");
+    if(!party || !dt || !prp) {
+        alert("Please fill Return Layout Details!");
         return;
     }
     
-    let rows = document.querySelectorAll("#returnRowsContainer .dynamic-item-row");
-    if(rows.length === 0) {
-        alert("Please define at least one active payload!");
-        return;
-    }
+    let container = document.getElementById("returnRowsContainer");
+    let rows = container.querySelectorAll(".dynamic-item-row");
+    let validCount = 0;
     
-    let validLogs = [];
-    let hasError = false;
-    
-    rows.forEach(row => {
-        if(hasError) return;
-        let item = row.querySelector(".returnItem").value.trim();
-        let version = row.querySelector(".returnVersion").value.trim();
-        let qtyField = row.querySelector(".returnQty");
-        let qty = parseInt(qtyField.value) || 0;
-        let rId = row.id;
-        
-        if(!item || !version || qty <= 0) {
-            hasError = true;
-            return;
+    rows.forEach(r => {
+        let item = r.querySelector(".returnItem").value.trim();
+        let v = r.querySelector(".returnVersion").value.trim();
+        let qty = parseInt(r.querySelector(".returnQty").value) || 0;
+        if(item && v && qty > 0) {
+            let devs = [];
+            r.querySelectorAll(".device-entry-row").forEach(dr => {
+                let s = dr.querySelector(".devSerial").value.trim();
+                if(s) devs.push({ serial: s, imei1: dr.querySelector(".devImei1").value.trim(), imei2: dr.querySelector(".devImei2").value.trim() });
+            });
+            db.ref("store_returns").push({
+                item: item, version: v, qty: qty, person: p, party: party, location: loc, purpose: prp, status: status, date: dt, remarks: rem, devices: devs
+            });
+            validCount++;
         }
-        let devices = collectDeviceDetails(`${rId}_container`);
-        validLogs.push({ item, version, qty, person, party, location, purpose, status, date, remarks, devices });
     });
     
-    if(hasError) {
-        alert("Please fill all items data matrix arrays properly!");
-        return;
+    if(validCount > 0) {
+        alert(`Successfully saved ${validCount} Items to Returns Node!`);
+        container.innerHTML = "";
+        document.getElementById("returnPerson").value = "";
+        document.getElementById("returnParty").value = "";
+        document.getElementById("returnLocation").value = "";
+        document.getElementById("returnPurpose").value = "";
+        document.getElementById("customReturnPurpose").value = "";
+        document.getElementById("customReturnPurpose").style.display = "none";
+        document.getElementById("returnDate").value = "";
+        document.getElementById("returnRemarks").value = "";
+        addReturnRow();
+    } else {
+        alert("Kindly provide valid inputs!");
     }
-    
-    validLogs.forEach(log => db.ref("store_returns").push(log));
-    alert("Returns Saved Successfully!");
-    
-    document.getElementById("returnPerson").value = "";
-    document.getElementById("returnParty").value = "";
-    document.getElementById("returnLocation").value = "";
-    document.getElementById("returnPurpose").value = "";
-    document.getElementById("customReturnPurpose").value = "";
-    document.getElementById("customReturnPurpose").style.display = "none";
-    document.getElementById("returnRemarks").value = "";
-    document.getElementById("returnRowsContainer").innerHTML = "";
-    addReturnRow();
-}
-
-function removeDynamicRow(rowId) {
-    let r = document.getElementById(rowId);
-    if(r) r.remove();
 }
 
 function buildItemMaster() {
-    let items = new Set(), parties = new Set(), locations = new Set();
-    const ex = o => Object.values(o).forEach(x => {
+    let itemDL = document.getElementById("itemList");
+    let partyDL = document.getElementById("partyList");
+    let locDL = document.getElementById("locationList");
+    
+    let items = new Set(), parties = new Set(), locs = new Set();
+    const collect = o => Object.values(o).forEach(x => {
         if(x.item) items.add(x.item.trim());
         if(x.party) parties.add(x.party.trim());
-        if(x.location) locations.add(x.location.trim());
+        if(x.location) locs.add(x.location.trim());
     });
-    ex(entryData); ex(receivedData); ex(issueData); ex(returnData);
+    collect(entryData); collect(receivedData); collect(issueData); collect(returnData);
     
-    let iDL = document.getElementById("itemList"); iDL.innerHTML = "";
-    items.forEach(x => iDL.innerHTML += `<option value="${x}">`);
+    itemDL.innerHTML = ""; items.forEach(i => itemDL.innerHTML += `<option value="${i}">`);
+    partyDL.innerHTML = ""; parties.forEach(p => partyDL.innerHTML += `<option value="${p}">`);
+    locDL.innerHTML = ""; locs.forEach(l => locDL.innerHTML += `<option value="${l}">`);
+}
+
+function showSection(sectionId) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById(sectionId).classList.add("active");
+}
+
+function searchTable(input, tableId) {
+    let txt = input.value.toLowerCase();
+    document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
+        tr.style.display = tr.innerText.toLowerCase().includes(txt) ? "" : "none";
+    });
+}
+
+function filterByDate(tableId, dateColIndex, fromId, toId) {
+    let fVal = document.getElementById(fromId).value;
+    let tVal = document.getElementById(toId).value;
+    let fDate = fVal ? new Date(fVal) : null;
+    let tDate = tVal ? new Date(tVal) : null;
+    if(fDate) fDate.setHours(0,0,0,0);
+    if(tDate) tDate.setHours(23,59,59,999);
     
-    let pDL = document.getElementById("partyList"); pDL.innerHTML = "";
-    parties.forEach(x => pDL.innerHTML += `<option value="${x}">`);
-    
-    let lDL = document.getElementById("locationList"); lDL.innerHTML = "";
-    locations.forEach(x => lDL.innerHTML += `<option value="${x}">`);
+    document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
+        let tdText = tr.cells[dateColIndex].innerText.trim();
+        if(!tdText || tdText === "-") { tr.style.display = "none"; return; }
+        let parts = tdText.split("-");
+        let rowDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        rowDate.setHours(12,0,0,0);
+        
+        let show = true;
+        if(fDate && rowDate < fDate) show = false;
+        if(tDate && rowDate > tDate) show = false;
+        tr.style.display = show ? "" : "none";
+    });
 }
 
 function renderTables() {
-    let rBody = document.querySelector("#reportTable tbody");
-    rBody.innerHTML = "";
-    let idx = 0;
-    Object.keys(globalCalculatedStock).sort().forEach(key => {
+    // 1. Render Report Table Safely
+    let reportBody = document.querySelector("#reportTable tbody");
+    reportBody.innerHTML = "";
+    let rIdx = 1;
+    Object.keys(globalCalculatedStock).forEach(key => {
         let [n, v] = key.split("|||");
         let e = Object.values(entryData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let p = Object.values(receivedData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
@@ -1260,254 +1159,166 @@ function renderTables() {
         let r = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let bal = globalCalculatedStock[key];
         
-        let allDates = [];
-        const colDates = o => Object.values(o).filter(x => x.item === n && x.version === v && x.date).forEach(x => allDates.push(new Date(x.date)));
-        colDates(entryData); colDates(receivedData); colDates(issueData); colDates(returnData);
-        let lastUp = "-";
-        if(allDates.length > 0) {
-            let maxD = new Date(Math.max.apply(null, allDates));
-            lastUp = formatDateDDMMYYYY(maxD.toISOString().split("T")[0]);
-        }
-        
-        idx++;
-        rBody.innerHTML += `<tr>
-            <td>${idx}</td>
-            <td><span style="color:#002b5c; font-weight:bold;">${n}</span></td>
+        reportBody.innerHTML += `
+        <tr>
+            <td>${rIdx++}</td>
+            <td><strong>${n}</strong></td>
             <td>${v}</td>
-            <td class="clickable-qty" onclick="viewStockCategoryLogs('entry','${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">${e}</td>
-            <td class="clickable-qty" onclick="viewStockCategoryLogs('received','${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">${p}</td>
-            <td class="clickable-qty" onclick="viewStockCategoryLogs('issue','${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">${i}</td>
-            <td class="clickable-qty" onclick="viewStockCategoryLogs('return','${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">${r}</td>
-            <td><strong style="color:${bal<0?'red':'green'}">${bal}</strong></td>
-            <td><small>${lastUp}</small></td>
+            <td>${e}</td>
+            <td>${p}</td>
+            <td>${i}</td>
+            <td>${r}</td>
+            <td style="font-weight:bold; color:${bal<0?'red':'green'}">${bal}</td>
             <td>-</td>
-            <td><button class="detailsBtn" style="padding:4px 8px; font-size:12px;" onclick="viewLiveDevices('${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">Live S/N</button></td>
-            <td><button class="editBtn" style="padding:3px 7px; font-size:12px;" onclick="openEditMasterModal('${n.replace(/'/g,"\\'")}', '${v.replace(/'/g,"\\'")}')">Rename</button></td>
+            <td>-</td>
+            <td><button class="detailsBtn" onclick="showLiveItemDetails('${n.replace(/'/g, "\\'")}')">View Details</button></td>
+            <td><button class="editBtn" onclick="openGlobalEditMasterModal('${n.replace(/'/g, "\\'")}', '${v.replace(/'/g, "\\'")}')">Modify</button></td>
         </tr>`;
     });
-    
-    let entBody = document.querySelector("#entryTable tbody"); entBody.innerHTML = ""; idx = 0;
-    Object.keys(entryData).forEach(k => {
-        let x = entryData[k]; idx++;
-        entBody.innerHTML += `<tr>
-            <td>${idx}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.qty}</strong></td><td>${formatDateDDMMYYYY(x.date)}</td><td>${x.remarks || '-'}</td>
-            <td><button class="detailsBtn" onclick="viewLogDevices('store_entries','${k}')">View (${(x.devices || []).length})</button></td>
-            <td>
-                <button class="editBtn" onclick="openRowEditModal('store_entries','${k}')">Edit</button>
-                <button class="deleteBtn" onclick="deleteRecord('store_entries','${k}')">Delete</button>
-            </td>
-        </tr>`;
-    });
-    
-    let recBody = document.querySelector("#receivedTable tbody"); recBody.innerHTML = ""; idx = 0;
-    Object.keys(receivedData).forEach(k => {
-        let x = receivedData[k]; idx++;
-        recBody.innerHTML += `<tr>
-            <td>${idx}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.qty}</strong></td>
-            <td>${x.billNumber || '-'}</td><td>${x.supplierName || '-'}</td><td>${formatDateDDMMYYYY(x.date)}</td>
-            <td><button class="detailsBtn" onclick="viewLogDevices('store_received','${k}')">View (${(x.devices || []).length})</button></td>
-            <td>
-                <button class="editBtn" onclick="openRowEditModal('store_received','${k}')">Edit</button>
-                <button class="deleteBtn" onclick="deleteRecord('store_received','${k}')">Delete</button>
-            </td>
-        </tr>`;
-    });
-    
-    let iBody = document.querySelector("#issueTable tbody"); iBody.innerHTML = ""; idx = 0;
-    Object.keys(issueData).forEach(k => {
-        let x = issueData[k]; idx++;
-        iBody.innerHTML += `<tr>
-            <td>${idx}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.qty}</strong></td>
-            <td>${x.person || '-'}</td><td>${x.party || '-'}</td><td>${x.location || '-'}</td>
-            <td><span style="color:purple; font-weight:bold;">${x.purpose || '-'}</span></td><td>${x.remarks || '-'}</td>
-            <td>${formatDateDDMMYYYY(x.date)}</td>
-            <td><button class="detailsBtn" onclick="viewLogDevices('store_issues','${k}')">View (${(x.devices || []).length})</button></td>
-            <td>
-                <button class="editBtn" onclick="openRowEditModal('store_issues','${k}')">Edit</button>
-                <button class="deleteBtn" onclick="deleteRecord('store_issues','${k}')">Delete</button>
-            </td>
-        </tr>`;
-    });
-    
-    let retBody = document.querySelector("#returnTable tbody"); retBody.innerHTML = ""; idx = 0;
-    Object.keys(returnData).forEach(k => {
-        let x = returnData[k]; idx++;
-        retBody.innerHTML += `<tr>
-            <td>${idx}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.qty}</strong></td>
-            <td>${x.person || '-'}</td><td>${x.party || '-'}</td><td>${x.location || '-'}</td>
-            <td><span style="color:purple; font-weight:bold;">${x.purpose || '-'}</span></td>
-            <td><span style="color:${x.status==='Ok'?'green':'red'}; font-weight:bold;">${x.status}</span></td>
-            <td>${formatDateDDMMYYYY(x.date)}</td>
-            <td><button class="detailsBtn" onclick="viewLogDevices('store_returns','${k}')">View (${(x.devices || []).length})</button></td>
-            <td>
-                <button class="editBtn" onclick="openRowEditModal('store_returns','${k}')">Edit</button>
-                <button class="deleteBtn" onclick="deleteRecord('store_returns','${k}')">Delete</button>
-            </td>
-        </tr>`;
-    });
+
+    // Helper to render transactions safely
+    const fillLogTable = (tableId, dataObj, nodeName, colsCallback) => {
+        let tbody = document.querySelector(`#${tableId} tbody`);
+        tbody.innerHTML = "";
+        let idx = 1;
+        Object.keys(dataObj).forEach(key => {
+            let row = dataObj[key];
+            let dateStr = formatDateDDMMYYYY(row.date);
+            let trHtml = `<tr><td>${idx++}</td>` + colsCallback(row, dateStr, key, nodeName) + `</tr>`;
+            tbody.insertAdjacentHTML("beforeend", trHtml);
+        });
+    };
+
+    // 2. Render Stock Entry Log
+    fillLogTable("entryTable", entryData, "store_entries", (row, dt, key, node) => `
+        <td>${row.item||'-'}</td><td>${row.version||'-'}</td><td>${row.qty||0}</td><td>${dt}</td><td>${row.remarks||'-'}</td>
+        <td><button class="detailsBtn" onclick="showJSONDeviceList('${node}','${key}')">Devices (${row.devices?row.devices.length:0})</button></td>
+        <td>
+            <button class="editBtn" onclick="openRowDataEditModal('${node}','${key}')">Edit</button>
+            <button class="deleteBtn" onclick="deleteRecordPrompt('${node}','${key}')">Del</button>
+        </td>
+    `);
+
+    // 3. Render Received Table
+    fillLogTable("receivedTable", receivedData, "store_received", (row, dt, key, node) => `
+        <td>${row.item||'-'}</td><td>${row.version||'-'}</td><td>${row.qty||0}</td><td>${row.billNumber||'-'}</td><td>${row.supplierName||'-'}</td><td>${dt}</td>
+        <td><button class="detailsBtn" onclick="showJSONDeviceList('${node}','${key}')">Devices (${row.devices?row.devices.length:0})</button></td>
+        <td>
+            <button class="editBtn" onclick="openRowDataEditModal('${node}','${key}')">Edit</button>
+            <button class="deleteBtn" onclick="deleteRecordPrompt('${node}','${key}')">Del</button>
+        </td>
+    `);
+
+    // 4. Render Issue Table
+    fillLogTable("issueTable", issueData, "store_issues", (row, dt, key, node) => `
+        <td>${row.item||'-'}</td><td>${row.version||'-'}</td><td>${row.qty||0}</td><td>${row.person||'-'}</td><td>${row.party||'-'}</td><td>${row.location||'-'}</td><td>${row.purpose||'-'}</td><td>${row.remarks||'-'}</td><td>${dt}</td>
+        <td><button class="detailsBtn" onclick="showJSONDeviceList('${node}','${key}')">Devices (${row.devices?row.devices.length:0})</button></td>
+        <td>
+            <button class="editBtn" onclick="openRowDataEditModal('${node}','${key}')">Edit</button>
+            <button class="deleteBtn" onclick="deleteRecordPrompt('${node}','${key}')">Del</button>
+        </td>
+    `);
+
+    // 5. Render Return Table
+    fillLogTable("returnTable", returnData, "store_returns", (row, dt, key, node) => `
+        <td>${row.item||'-'}</td><td>${row.version||'-'}</td><td>${row.qty||0}</td><td>${row.person||'-'}</td><td>${row.party||'-'}</td><td>${row.location||'-'}</td><td>${row.purpose||'-'}</td><td><strong>${row.status||'Ok'}</strong></td><td>${dt}</td>
+        <td><button class="detailsBtn" onclick="showJSONDeviceList('${node}','${key}')">Devices (${row.devices?row.devices.length:0})</button></td>
+        <td>
+            <button class="editBtn" onclick="openRowDataEditModal('${node}','${key}')">Edit</button>
+            <button class="deleteBtn" onclick="deleteRecordPrompt('${node}','${key}')">Del</button>
+        </td>
+    `);
 }
 
 function renderSummaryTable() {
-    let body = document.querySelector("#summaryTable tbody");
-    body.innerHTML = "";
+    let tbody = document.querySelector("#summaryTable tbody");
+    tbody.innerHTML = "";
+    let sIdx = 1;
     
-    let nonSerialReturnsMap = {};
-    Object.values(returnData).forEach(r => {
-        if(!r.devices || r.devices.length === 0) {
-            let k = `${r.item.trim()}|||${r.version.trim()}|||${r.party ? r.party.trim() : ''}|||${r.purpose ? r.purpose.trim() : ''}|||${r.status}`;
-            if(r.status === 'Ok') {
-                nonSerialReturnsMap[k] = (nonSerialReturnsMap[k] || 0) + (parseInt(r.qty) || 0);
-            }
-        }
-    });
-
-    let idx = 0;
-    let sortedIssues = Object.values(issueData).sort((a,b) => new Date(b.date) - new Date(a.date));
-    
-    sortedIssues.forEach(x => {
-        let totalQty = parseInt(x.qty) || 0;
-        let overallStatus = `<span class="status-badge status-na">N/A</span>`;
-        let dInfo = "";
+    Object.keys(issueData).forEach(key => {
+        let row = issueData[key];
+        let dt = formatDateDDMMYYYY(row.date);
         
-        if(x.devices && x.devices.length > 0) {
-            let trackedReturnedCount = 0;
-            let devLines = [];
-            x.devices.forEach(d => {
-                let ret = isDeviceReturned(d.serial);
-                if(ret) trackedReturnedCount++;
-                devLines.push(`<span style="color:${ret?'green':'red'}; display:block;">• S/N: ${d.serial} [${ret?'Returned In Store':'Outstanding / Party'}]</span>`);
-            });
-            dInfo = devLines.join("");
-            
-            if(trackedReturnedCount === 0) {
-                overallStatus = `<span class="status-badge status-party">Active / Outstanding</span>`;
-            } else if(trackedReturnedCount < x.devices.length) {
-                overallStatus = `<span class="status-badge" style="background-color: orange; color: white;">Partially Returned (${trackedReturnedCount}/${x.devices.length})</span>`;
-            } else {
-                overallStatus = `<span class="status-badge status-returned">Fully Returned</span>`;
-            }
-        } else {
-            let nKey = `${x.item.trim()}|||${x.version.trim()}|||${x.party ? x.party.trim() : ''}|||${x.purpose ? x.purpose.trim() : ''}|||Ok`;
-            let availableReturns = nonSerialReturnsMap[nKey] || 0;
-            let returnedForThisIssue = 0;
-            
-            if(availableReturns > 0) {
-                if(availableReturns >= totalQty) {
-                    returnedForThisIssue = totalQty;
-                    nonSerialReturnsMap[nKey] -= totalQty;
-                } else {
-                    returnedForThisIssue = availableReturns;
-                    nonSerialReturnsMap[nKey] = 0;
-                }
-            }
-            dInfo = `<div style="color:#555; font-style:italic;">No Serial/IMEI logged (Qty tracking)</div>`;
-            if(returnedForThisIssue === 0) {
-                overallStatus = `<span class="status-badge status-party">Active / Outstanding</span>`;
-                dInfo += `<div style="color:red; font-weight:bold; margin-top:4px;">0 of ${totalQty} Returned</div>`;
-            } else if(returnedForThisIssue < totalQty) {
-                overallStatus = `<span class="status-badge" style="background-color: orange; color: white;">Partially Returned (${returnedForThisIssue}/${totalQty})</span>`;
-                dInfo += `<div style="color:orange; font-weight:bold; margin-top:4px;">${returnedForThisIssue} of ${totalQty} Returned</div>`;
-            } else {
-                overallStatus = `<span class="status-badge status-returned">Fully Returned</span>`;
-                dInfo += `<div style="color:green; font-weight:bold; margin-top:4px;">All ${totalQty} Returned</div>`;
-            }
+        let devsText = "-";
+        if(row.devices && row.devices.length > 0) {
+            devsText = row.devices.map(d => d.serial).join(", ");
         }
         
-        idx++;
-        body.innerHTML += `<tr>
-            <td>${idx}</td>
-            <td>${formatDateDDMMYYYY(x.date)}</td>
-            <td><strong>${x.item}</strong></td>
-            <td>${x.version}</td>
-            <td>${x.qty}</td>
-            <td>${x.party || '-'}</td>
-            <td><span style="color:purple; font-weight:bold;">${x.purpose || '-'}</span></td>
-            <td style="text-align:left; font-size:12px;">${dInfo}</td>
-            <td>${overallStatus}</td>
+        tbody.innerHTML += `
+        <tr data-purpose="${row.purpose||''}">
+            <td>${sIdx++}</td>
+            <td>${dt}</td>
+            <td>${row.item||'-'}</td>
+            <td>${row.version||'-'}</td>
+            <td>${row.qty||0}</td>
+            <td>${row.party||'-'}</td>
+            <td><span class="status-badge status-party">${row.purpose||'Issue'}</span></td>
+            <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${devsText}">${devsText}</td>
+            <td><span class="tracking-link" onclick="openSummaryTrackingModal('${row.item}','${row.party}')">Check Status</span></td>
         </tr>`;
     });
 }
 
-function viewLiveDevices(itemName, version) {
-    let pool = getLiveStockPool(itemName, version);
-    let body = document.getElementById("modalBody");
-    document.getElementById("modalTitle").innerText = `Live Serial/IMEIs In Store: ${itemName} (${version})`;
-    body.innerHTML = "";
-    if(pool.length === 0) {
-        body.innerHTML = "<p style='color:red; font-weight:bold;'>No specific serialized devices currently in stock balance!</p>";
-    } else {
-        let h = "<table><thead><tr><th>#</th><th>Serial No</th><th>IMEI 1</th><th>IMEI 2</th></tr></thead><tbody>";
-        pool.forEach((p, idx) => {
-            h += `<tr><td>${idx+1}</td><td><strong>${p.serial}</strong></td><td>${p.imei1 || '-'}</td><td>${p.imei2 || '-'}</td></tr>`;
-        });
-        h += "</tbody></table>";
-        body.innerHTML = h;
-    }
-    document.getElementById("detailsModal").style.display = "block";
+function searchSummaryTable(input) {
+    let txt = input.value.toLowerCase();
+    document.querySelectorAll("#summaryTable tbody tr").forEach(tr => {
+        tr.style.display = tr.innerText.toLowerCase().includes(txt) ? "" : "none";
+    });
 }
 
-function viewLogDevices(node, key) {
-    let record = (node === 'store_entries') ? entryData[key] : (node === 'store_received') ? receivedData[key] : (node === 'store_issues') ? issueData[key] : returnData[key];
-    if(!record) return;
-    
-    let body = document.getElementById("modalBody");
-    document.getElementById("modalTitle").innerText = `Logged Devices: ${record.item} (${record.version})`;
-    body.innerHTML = "";
-    
-    let devList = record.devices || [];
-    if(devList.length === 0) {
-        body.innerHTML = "<p style='padding:10px; font-style:italic; color:#666;'>No specific Device Serial/IMEI details captured inside this transaction node row.</p>";
-    } else {
-        let h = "<table><thead><tr><th>#</th><th>Serial No</th><th>IMEI 1</th><th>IMEI 2</th></tr></thead><tbody>";
-        devList.forEach((d, idx) => {
-            h += `<tr><td>${idx+1}</td><td><strong>${d.serial}</strong></td><td>${d.imei1 || '-'}</td><td>${d.imei2 || '-'}</td></tr>`;
-        });
-        h += "</tbody></table>";
-        body.innerHTML = h;
-    }
-    document.getElementById("detailsModal").style.display = "block";
-}
-
-function deleteRecord(node, key) {
-    let targetObj = (node==='store_entries')?entryData[key]:(node==='store_received')?receivedData[key]:(node==='store_issues')?issueData[key]:returnData[key];
-    if(!targetObj) return;
-    
-    requireSecurePassword(function() {
-        if(confirm("Are you absolutely sure you want to delete this recorded log data?")) {
-            db.ref("deleted_backup").push({
-                node: node,
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                data: targetObj
-            }).then(() => {
-                db.ref(`${node}/${k}`).remove();
-                alert("Record deleted globally and backed up securely.");
-            });
+function filterSummaryByPurpose() {
+    let filter = document.getElementById("summaryPurposeFilter").value;
+    document.querySelectorAll("#summaryTable tbody tr").forEach(tr => {
+        let p = tr.getAttribute("data-purpose");
+        if(filter === "ALL" || p === filter) {
+            tr.style.display = "";
+        } else {
+            tr.style.display = "none";
         }
     });
 }
 
-function restoreData() {
-    requireSecurePassword(function() {
-        db.ref("deleted_backup").once("value", s => {
-            let data = s.val() || {};
-            let keys = Object.keys(data).sort();
-            if(keys.length === 0) {
-                alert("No deleted records available for historical restoration!");
-                return;
-            }
-            let lastK = keys[keys.length - 1];
-            let target = data[lastK];
-            if(confirm(`Do you want to restore last deleted entry into '${target.node}'?`)) {
-                db.ref(target.node).push(target.data);
-                db.ref(`deleted_backup/${lastK}`).remove();
-                alert("Data Node Restored Successfully!");
-            }
-        });
+function showJSONDeviceList(node, key) {
+    let row = null;
+    if(node === "store_entries") row = entryData[key];
+    if(node === "store_received") row = receivedData[key];
+    if(node === "store_issues") row = issueData[key];
+    if(node === "store_returns") row = returnData[key];
+    
+    if(!row || !row.devices || row.devices.length === 0) {
+        alert("No device serial details recorded for this row.");
+        return;
+    }
+    
+    let html = "<table style='width:100%;'><thead><tr><th>#</th><th>Serial No</th><th>IMEI 1</th><th>IMEI 2</th></tr></thead><tbody>";
+    row.devices.forEach((d, i) => {
+        html += `<tr><td>${i+1}</td><td>${d.serial||'-'}</td><td>${d.imei1||'-'}</td><td>${d.imei2||'-'}</td></tr>`;
     });
+    html += "</tbody></table>";
+    
+    document.getElementById("modalTitle").innerText = `${row.item} (${row.version}) - Serial Manifest`;
+    document.getElementById("modalBody").innerHTML = html;
+    document.getElementById("detailsModal").style.display = "block";
 }
 
-function openEditMasterModal(item, version) {
-    requireSecurePassword(function() {
+function showLiveItemDetails(itemName) {
+    let list = getLiveDevicesList(itemName);
+    if(list.length === 0) {
+        alert("No physical devices registered under live track state.");
+        return;
+    }
+    let html = "<h4>Live Serial Asset Tracker</h4><table style='width:100%;'><thead><tr><th>#</th><th>Serial Number</th><th>IMEI Primary</th></tr></thead><tbody>";
+    list.forEach((d, i) => {
+        html += `<tr><td>${i+1}</td><td><strong>${d.serial}</strong></td><td>${d.imei1||'-'}</td></tr>`;
+    });
+    html += "</tbody></table>";
+    document.getElementById("modalTitle").innerText = `${itemName} - Active Live Manifest`;
+    document.getElementById("modalBody").innerHTML = html;
+    document.getElementById("detailsModal").style.display = "block";
+}
+
+function openGlobalEditMasterModal(item, version) {
+    requireSecurePassword(() => {
         document.getElementById("oldItemNameHidden").value = item;
         document.getElementById("oldVersionHidden").value = version;
         document.getElementById("editModalItemName").value = item;
@@ -1526,48 +1337,50 @@ function submitGlobalItemEdit() {
     let newN = document.getElementById("editModalItemName").value.trim();
     let newV = document.getElementById("editModalVersion").value.trim();
     
-    if(!newN || !newV) {
-        alert("Names cannot be left blank!");
-        return;
-    }
+    if(!newN || !newV) return;
     
-    if(confirm("This will perform global updates across all categories. Proceed?")) {
-        const up = (node, dataObj) => {
-            Object.keys(dataObj).forEach(k => {
-                if(dataObj[k].item === oldN && dataObj[k].version === oldV) {
-                    db.ref(`${node}/${k}`).update({ item: newN, version: newV });
-                }
-            });
-        };
-        up("store_entries", entryData);
-        up("store_received", receivedData);
-        up("store_issues", issueData);
-        up("store_returns", returnData);
-        alert("Global Parameters Modifications Applied!");
-        closeEditMasterModal();
-    }
+    const updateNode = (src, nodeName) => {
+        Object.keys(src).forEach(k => {
+            if(src[k].item === oldN && src[k].version === oldV) {
+                db.ref(`${nodeName}/${k}`).update({ item: newN, version: newV });
+            }
+        });
+    };
+    
+    updateNode(entryData, "store_entries");
+    updateNode(receivedData, "store_received");
+    updateNode(issueData, "store_issues");
+    updateNode(returnData, "store_returns");
+    
+    alert("Global items updated successfully everywhere!");
+    closeEditMasterModal();
 }
 
-function openRowEditModal(node, key) {
-    requireSecurePassword(function() {
-        let x = (node==='store_entries')?entryData[key]:(node==='store_received')?receivedData[key]:(node==='store_issues')?issueData[key]:returnData[key];
-        if(!x) return;
+function openRowDataEditModal(node, key) {
+    requireSecurePassword(() => {
+        let row = null;
+        if(node === "store_entries") row = entryData[key];
+        if(node === "store_received") row = receivedData[key];
+        if(node === "store_issues") row = issueData[key];
+        if(node === "store_returns") row = returnData[key];
+        
+        if(!row) return;
         
         document.getElementById("editNodeHidden").value = node;
         document.getElementById("editKeyHidden").value = key;
-        let body = document.getElementById("rowEditFormBody");
-        body.innerHTML = "";
         
-        Object.keys(x).forEach(f => {
-            if(f === 'devices') return;
-            let val = x[f] || "";
-            let type = (f === 'date') ? 'date' : (f === 'qty') ? 'number' : 'text';
-            body.innerHTML += `
-                <div style="margin-bottom:6px;">
-                    <label style="text-transform:capitalize; font-weight:bold; display:block;">${f}:</label>
-                    <input type="${type}" class="modalEditField" data-field="${f}" value="${val}" style="width:95%; padding:6px;">
-                </div>`;
+        let container = document.getElementById("rowEditFormBody");
+        container.innerHTML = "";
+        
+        Object.keys(row).forEach(f => {
+            if(f === "devices") return;
+            container.innerHTML += `
+            <div>
+                <label style="font-weight:bold;text-transform:capitalize;">${f}:</label><br>
+                <input type="${f==='date'?'date':'text'}" class="modalEditField" data-field="${f}" value="${row[f]}" style="width:90%;">
+            </div>`;
         });
+        
         document.getElementById("globalRowEditModal").style.display = "block";
     });
 }
@@ -1579,69 +1392,75 @@ function closeRowEditModal() {
 function submitRowDataEdit() {
     let node = document.getElementById("editNodeHidden").value;
     let key = document.getElementById("editKeyHidden").value;
-    let upd = {};
     
-    document.querySelectorAll(".modalEditField").forEach(inp => {
-        let f = inp.getAttribute("data-field");
-        let v = inp.value.trim();
-        if(f === 'qty') v = parseInt(v) || 0;
-        upd[f] = v;
+    let updates = {};
+    document.querySelectorAll("#rowEditFormBody .modalEditField").forEach(inp => {
+        let field = inp.getAttribute("data-field");
+        let val = inp.value.trim();
+        if(field === "qty") val = parseInt(val) || 0;
+        updates[field] = val;
     });
     
-    if(confirm("Are you sure you want to save modifications for this item row?")) {
-        db.ref(`${node}/${key}`).update(upd);
-        alert("Transaction row saved successfully!");
-        closeRowEditModal();
-    }
+    db.ref(`${node}/${key}`).update(updates);
+    alert("Record updated successfully!");
+    closeRowEditModal();
 }
 
-function showSection(id) {
-    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-    document.getElementById(id).classList.add("active");
-}
-
-function searchTable(input, tableId) {
-    let txt = input.value.toLowerCase();
-    document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
-        tr.style.display = tr.innerText.toLowerCase().includes(txt) ? "" : "none";
-    });
-}
-
-function searchSummaryTable(input) {
-    searchTable(input, "summaryTable");
-}
-
-function filterSummaryByPurpose() {
-    let val = document.getElementById("summaryPurposeFilter").value;
-    document.querySelectorAll("#summaryTable tbody tr").forEach(tr => {
-        if(val === "ALL") { tr.style.display = ""; return; }
-        let purpTd = tr.cells[6].innerText.trim();
-        tr.style.display = (purpTd === val) ? "" : "none";
+function deleteRecordPrompt(node, key) {
+    requireSecurePassword(() => {
+        if(confirm("Are you absolute sure you want to delete this log entry permanently?")) {
+            let backupRef = db.ref("deleted_backup").push();
+            let originalData = null;
+            if(node === "store_entries") originalData = entryData[key];
+            if(node === "store_received") originalData = receivedData[key];
+            if(node === "store_issues") originalData = issueData[key];
+            if(node === "store_returns") originalData = returnData[key];
+            
+            backupRef.set({
+                deletedAt: new Date().toISOString(),
+                originalNode: node,
+                data: originalData
+            });
+            
+            db.ref(`${node}/${key}`).remove();
+            alert("Entry removed from live server nodes safely!");
+        }
     });
 }
 
-function filterByDate(tableId, dateColIndex, fromId, toId) {
-    let fromVal = document.getElementById(fromId).value;
-    let toVal = document.getElementById(toId).value;
-    if(!fromVal && !toVal) return;
-    
-    let fDate = fromVal ? new Date(fromVal) : null;
-    let tDate = toVal ? new Date(toVal) : null;
-    if(fDate) fDate.setHours(0,0,0,0);
-    if(tDate) tDate.setHours(23,59,59,999);
-    
-    document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
-        let tdText = tr.cells[dateColIndex].innerText.trim();
-        if(!tdText || tdText === "-") { tr.style.display = "none"; return; }
-        let parts = tdText.split("-");
-        let rowDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-        rowDate.setHours(12,0,0,0);
+function restoreData() {
+    requireSecurePassword(() => {
+        let keys = Object.keys(deletedBackup);
+        if(keys.length === 0) {
+            alert("No deleted cache items discovered inside system.");
+            return;
+        }
+        let lastKey = keys[keys.length - 1];
+        let item = deletedBackup[lastKey];
         
-        let show = true;
-        if(fDate && rowDate < fDate) show = false;
-        if(tDate && rowDate > tDate) show = false;
-        tr.style.display = show ? "" : "none";
+        db.ref(item.originalNode).push(item.data);
+        db.ref(`deleted_backup/${lastKey}`).remove();
+        alert(`Successfully restored last data item to ${item.originalNode} layout context!`);
     });
+}
+
+function openSummaryTrackingModal(item, party) {
+    let issueQty = Object.values(issueData).filter(x => x.item === item && x.party === party).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
+    let returnQty = Object.values(returnData).filter(x => x.item === item && x.party === party && x.status === "Ok").reduce((a,b)=>a+(parseInt(b.qty)||0),0);
+    let netBal = issueQty - returnQty;
+    
+    let html = `
+    <div style="padding:10px; font-size:14px; line-height:24px;">
+        <strong>Item Name:</strong> ${item}<br>
+        <strong>Client / Party Name:</strong> ${party}<br><hr>
+        📈 Total Quantity Issued: <strong>${issueQty} Nos</strong><br>
+        📉 Total Quantity Returned: <strong>${returnQty} Nos</strong><br><hr>
+        📦 Live Inventory outstanding with Client: <strong style="color:${netBal>0?'red':'green'}">${netBal} Nos</strong>
+    </div>`;
+    
+    document.getElementById("modalTitle").innerText = "Item Tracking Matrix Breakdown";
+    document.getElementById("modalBody").innerHTML = html;
+    document.getElementById("detailsModal").style.display = "block";
 }
 
 function downloadCSV(tId, fName) {
