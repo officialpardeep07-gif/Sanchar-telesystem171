@@ -573,23 +573,17 @@ function calculateStockPool() {
         let i = Object.values(issueData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let r = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         
+        // Logic Update: "For Sale" aur "For Demo/Rent" columns mein ab sirf Stock Entry ka original data hi show hoga. 
+        // Isme Issue ya Return hone par koi plus/minus nahi dikhega (Wo value bilkul unaffected rahegi).
         let entrySale = Object.values(entryData).filter(x => x.item === n && x.version === v && x.stockType === "For Sale").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let entryDemo = Object.values(entryData).filter(x => x.item === n && x.version === v && x.stockType === "For Demo/Rent").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
-        
-        let issueSale = Object.values(issueData).filter(x => x.item === n && x.version === v && (x.stockPool === "For Sale" || (!x.stockPool && x.purpose === "Sale"))).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
-        let issueDemo = Object.values(issueData).filter(x => x.item === n && x.version === v && (x.stockPool === "For Demo/Rent" || (!x.stockPool && (x.purpose === "Demo" || x.purpose === "Rent")))).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
-        
-        let returnSale = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok" && (x.stockPool === "For Sale" || (!x.stockPool && x.purpose === "Sale"))).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
-        let returnDemo = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok" && (x.stockPool === "For Demo/Rent" || (!x.stockPool && (x.purpose === "Demo" || x.purpose === "Rent")))).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
 
         let bal = e + p - i + r;
-        let saleBal = entrySale - issueSale + returnSale;
-        let demoBal = entryDemo - issueDemo + returnDemo;
         
         globalCalculatedStock[key] = {
             total: bal,
-            sale: saleBal,
-            demo: demoBal
+            sale: entrySale,
+            demo: entryDemo
         };
     });
 }
@@ -794,6 +788,76 @@ function toggleCustomReturnPurposeField() {
     }
 }
 
+function openStockEntryBreakdownModal(itemName, version) {
+    let title = `Stock Entry Breakdown - ${itemName} (${version})`;
+    let html = `<table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#002b5c; color:#fff;">
+                        <th>Date</th><th>Stock Type Mapping</th><th>Quantity Entered</th><th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+    
+    let logs = Object.values(entryData).filter(x => x.item === itemName && x.version === version);
+
+    if(logs.length === 0) {
+        html += `<tr><td colspan="4" style="text-align:center; color:#888;">No data records found.</td></tr>`;
+    } else {
+        logs.forEach(l => {
+            html += `<tr>
+                <td>${formatDateDDMMYYYY(l.date)}</td>
+                <td><span style="padding: 2px 6px; background: #e2eafc; border-radius: 4px; font-weight: bold;">${l.stockType || 'General Stock'}</span></td>
+                <td><strong>${l.qty} Nos</strong></td>
+                <td>${l.remarks || '-'}</td>
+            </tr>`;
+        });
+    }
+    
+    html += `</tbody></table>`;
+    document.getElementById("modalTitle").innerText = title;
+    document.getElementById("modalBody").innerHTML = html;
+    document.getElementById("detailsModal").style.display = "block";
+}
+
+function openQtyBreakdownModal(category, itemName, version) {
+    let title = `${category} Breakdown - ${itemName} (${version})`;
+    let html = `<table style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#002b5c; color:#fff;">
+                        <th>Date</th><th>Qty</th><th>Remarks</th><th>More Info</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+    
+    let logs = [];
+    if(category === 'Purchase') {
+        logs = Object.values(receivedData).filter(x => x.item === itemName && x.version === version);
+    } else if(category === 'Issue') {
+        logs = Object.values(issueData).filter(x => x.item === itemName && x.version === version);
+    } else if(category === 'Return') {
+        logs = Object.values(returnData).filter(x => x.item === itemName && x.version === version && x.status === "Ok");
+    }
+
+    if(logs.length === 0) {
+        html += `<tr><td colspan="4" style="text-align:center; color:#888;">No transactions found.</td></tr>`;
+    } else {
+        logs.forEach(l => {
+            let info = l.supplierName ? `Supplier: ${l.supplierName}` : (l.party ? `Party: ${l.party}` : '-');
+            html += `<tr>
+                <td>${formatDateDDMMYYYY(l.date)}</td>
+                <td><strong>${l.qty} Nos</strong></td>
+                <td>${l.remarks || '-'}</td>
+                <td><small>${info}</small></td>
+            </tr>`;
+        });
+    }
+    
+    html += `</tbody></table>`;
+    document.getElementById("modalTitle").innerText = title;
+    document.getElementById("modalBody").innerHTML = html;
+    document.getElementById("detailsModal").style.display = "block";
+}
+
 function handleItemSelectionChange(itemInputId, targetDatalistId) {
     let itemName = document.getElementById(itemInputId).value.trim();
     let dl = document.getElementById(targetDatalistId + "DL");
@@ -949,47 +1013,6 @@ function collectDeviceDetails(containerId) {
         if(s) arr.push({ serial: s, imei1: i1, imei2: i2 });
     });
     return arr;
-}
-
-function openQtyBreakdownModal(category, itemName, version) {
-    let title = `${category} Breakdown - ${itemName} (${version})`;
-    let html = `<table style="width:100%; border-collapse:collapse;">
-                <thead>
-                    <tr style="background:#002b5c; color:#fff;">
-                        <th>Date</th><th>Qty</th><th>Remarks</th><th>More Info</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-    
-    let logs = [];
-    if(category === 'Stock Entry') {
-        logs = Object.values(entryData).filter(x => x.item === itemName && x.version === version);
-    } else if(category === 'Purchase') {
-        logs = Object.values(receivedData).filter(x => x.item === itemName && x.version === version);
-    } else if(category === 'Issue') {
-        logs = Object.values(issueData).filter(x => x.item === itemName && x.version === version);
-    } else if(category === 'Return') {
-        logs = Object.values(returnData).filter(x => x.item === itemName && x.version === version && x.status === "Ok");
-    }
-
-    if(logs.length === 0) {
-        html += `<tr><td colspan="4" style="text-align:center; color:#888;">No transactions found.</td></tr>`;
-    } else {
-        logs.forEach(l => {
-            let info = l.supplierName ? `Supplier: ${l.supplierName}` : (l.party ? `Party: ${l.party}` : '-');
-            html += `<tr>
-                <td>${formatDateDDMMYYYY(l.date)}</td>
-                <td><strong>${l.qty} Nos</strong></td>
-                <td>${l.remarks || '-'}</td>
-                <td><small>${info}</small></td>
-            </tr>`;
-        });
-    }
-    
-    html += `</tbody></table>`;
-    document.getElementById("modalTitle").innerText = title;
-    document.getElementById("modalBody").innerHTML = html;
-    document.getElementById("detailsModal").style.display = "block";
 }
 
 function addIssueRow() {
@@ -1393,7 +1416,7 @@ function saveGlobalReturns() {
     alert(`Successfully processed and loaded back ${validCount} returned line items.`);
     document.getElementById("returnPerson").value = "";
     document.getElementById("returnParty").value = "";
-    document.getElementById("returnLocation").value = "";
+    document.getElementById("location").value = "";
     document.getElementById("returnPurpose").value = "";
     document.getElementById("customReturnPurpose").value = "";
     document.getElementById("returnDate").value = "";
@@ -1448,7 +1471,7 @@ function renderTables() {
             <td>${sr++}</td>
             <td><strong>${item}</strong></td>
             <td>${version}</td>
-            <td class="clickable-qty" onclick="openQtyBreakdownModal('Stock Entry', '${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">${e}</td>
+            <td class="clickable-qty" onclick="openStockEntryBreakdownModal('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">${e}</td>
             <td class="clickable-qty" onclick="openQtyBreakdownModal('Purchase', '${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">${p}</td>
             <td class="clickable-qty" onclick="openQtyBreakdownModal('Issue', '${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">${i}</td>
             <td class="clickable-qty" onclick="openQtyBreakdownModal('Return', '${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">${r}</td>
