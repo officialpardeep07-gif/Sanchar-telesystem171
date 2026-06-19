@@ -102,8 +102,8 @@
         <div class="header-actions">
             <div class="filter-group">
                 <input type="text" placeholder="Search" onkeyup="searchTable(this,'reportTable')">
-                <label>From:</label><input type="date" id="repFromDate" onchange="filterByDate('reportTable', 8, 'repFromDate', 'repToDate')">
-                <label>To:</label><input type="date" id="repToDate" onchange="filterByDate('reportTable', 8, 'repFromDate', 'repToDate')">
+                <label>From:</label><input type="date" id="repFromDate" onchange="filterByDate('reportTable', 10, 'repFromDate', 'repToDate')">
+                <label>To:</label><input type="date" id="repToDate" onchange="filterByDate('reportTable', 10, 'repFromDate', 'repToDate')">
                 <button class="downloadBtn" onclick="downloadCSV('reportTable','Stock_Report.csv')">Download Report</button>
                 <button class="restoreBtn" onclick="restoreData()">Restore Deleted</button>
             </div>
@@ -111,7 +111,21 @@
         </div>
         <table id="reportTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item Name</th><th>Version</th><th>Stock Entry</th><th>Purchase</th><th>Issue</th><th>Return</th><th>Balance</th><th>Remarks</th><th>Live Devices</th><th>Action</th></tr>
+                <tr>
+                    <th>Sr.No</th>
+                    <th>Item Name</th>
+                    <th>Version</th>
+                    <th>Stock Entry</th>
+                    <th>Purchase</th>
+                    <th>Issue</th>
+                    <th>Return</th>
+                    <th>Balance</th>
+                    <th>For Sale</th>
+                    <th>Demo/Rent</th>
+                    <th>Remarks</th>
+                    <th>Live Devices</th>
+                    <th>Action</th>
+                </tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -124,6 +138,12 @@
             <input type="text" id="entryItem" list="itemList" placeholder="Item Name" onchange="handleItemSelectionChange('entryItem', 'entryVersion')">
             <input type="text" id="entryVersion" list="entryVersionDL" placeholder="Version">
             <datalist id="entryVersionDL"></datalist>
+            
+            <select id="entryStockType" style="font-weight: bold; border: 1px solid #002b5c;">
+                <option value="General Stock">General Stock</option>
+                <option value="For Sale">For Sale</option>
+                <option value="For Demo/Rent">For Demo/Rent</option>
+            </select>
             
             <input type="number" id="entryQty" placeholder="Qty" oninput="handleDeviceInputsTrigger('entryQty', 'entryImeiCheck', 'entryDevicesContainer')">
             <input type="date" id="entryDate">
@@ -144,7 +164,7 @@
 
         <div style="background:#e8f4fd;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #b8daff">
             <strong style="color:#004085; font-size:15px;">Bulk Stock Entry Import (Excel / CSV File):</strong><br>
-            <p style="margin:5px 0; font-size:12px; color:#333;">Excel Headers required in CSV: <strong>item, version, qty, date, remarks</strong> (Date format: DD-MM-YYYY)</p>
+            <p style="margin:5px 0; font-size:12px; color:#333;">Excel Headers required in CSV: <strong>item, version, qty, date, remarks, stocktype</strong> (Date format: DD-MM-YYYY, stocktype can be: For Sale, For Demo/Rent, General Stock)</p>
             <input type="file" id="excelBulkStockEntryFile" accept=".csv" style="padding:5px;">
             <button class="saveBtn" onclick="processExcelBulkStockEntry()" style="background:#0056b3; margin-left:10px;">Upload Bulk Entries</button>
         </div>
@@ -152,14 +172,14 @@
         <div class="header-actions">
             <div class="filter-group">
                 <input type="text" placeholder="Search..." onkeyup="searchTable(this,'entryTable')">
-                <label>From:</label><input type="date" id="entryFromDate" onchange="filterByDate('entryTable', 4, 'entryFromDate', 'entryToDate')">
-                <label>To:</label><input type="date" id="entryToDate" onchange="filterByDate('entryTable', 4, 'entryFromDate', 'entryToDate')">
+                <label>From:</label><input type="date" id="entryFromDate" onchange="filterByDate('entryTable', 5, 'entryFromDate', 'entryToDate')">
+                <label>To:</label><input type="date" id="entryToDate" onchange="filterByDate('entryTable', 5, 'entryFromDate', 'entryToDate')">
                 <button class="downloadBtn" onclick="downloadCSV('entryTable','Stock_Entries.csv')">Download Entries</button>
             </div>
         </div>
         <table id="entryTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Date</th><th>Remarks</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Type</th><th>Qty</th><th>Date</th><th>Remarks</th><th>Device Details</th><th>Action</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -252,7 +272,7 @@
         </div>
         <table id="issueTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Pool Source</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -297,7 +317,7 @@
         </div>
         <table id="returnTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Status</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Pool Destination</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Status</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -484,7 +504,6 @@ function resetCredentialForm(){
     document.getElementById("newPassword").value = "";
 }
 
-// OTP and Firebase Initialize
 function sendOTPRequest(){
     currentGeneratedOTP = Math.floor(100000 + Math.random() * 900000).toString();
     alert("OTP generated for officialpardeep07@gmail.com!\nCheck System Code to verify.");
@@ -502,19 +521,6 @@ function verifyOTP(){
     } else {
         alert("Incorrect OTP entered! Please check and enter the correct OTP.");
     }
-}
-
-function saveNewCredentials() {
-    let newU = document.getElementById("newUsername").value.trim();
-    let newP = document.getElementById("newPassword").value.trim();
-    if(!newU || !newP) {
-        alert("Fields cannot be empty!");
-        return;
-    }
-    localStorage.setItem("store_user", newU);
-    localStorage.setItem("store_pass", newP);
-    alert("Credentials updated successfully!");
-    toggleCredentialChange(false);
 }
 
 const firebaseConfig={
@@ -561,18 +567,37 @@ function calculateStockPool() {
 
     itemsMap.forEach(key => {
         let [n, v] = key.split("|||");
+        
         let e = Object.values(entryData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let p = Object.values(receivedData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let i = Object.values(issueData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let r = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        
+        let entrySale = Object.values(entryData).filter(x => x.item === n && x.version === v && x.stockType === "For Sale").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        let entryDemo = Object.values(entryData).filter(x => x.item === n && x.version === v && x.stockType === "For Demo/Rent").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        
+        let issueSale = Object.values(issueData).filter(x => x.item === n && x.version === v && (x.stockPool === "For Sale" || (!x.stockPool && x.purpose === "Sale"))).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        let issueDemo = Object.values(issueData).filter(x => x.item === n && x.version === v && (x.stockPool === "For Demo/Rent" || (!x.stockPool && (x.purpose === "Demo" || x.purpose === "Rent")))).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        
+        let returnSale = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok" && (x.stockPool === "For Sale" || (!x.stockPool && x.purpose === "Sale"))).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        let returnDemo = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok" && (x.stockPool === "For Demo/Rent" || (!x.stockPool && (x.purpose === "Demo" || x.purpose === "Rent")))).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+
         let bal = e + p - i + r;
-        globalCalculatedStock[key] = bal;
+        let saleBal = entrySale - issueSale + returnSale;
+        let demoBal = entryDemo - issueDemo + returnDemo;
+        
+        globalCalculatedStock[key] = {
+            total: bal,
+            sale: saleBal,
+            demo: demoBal
+        };
     });
 }
 
 function saveStockEntry() {
     let item = document.getElementById("entryItem").value.trim();
     let version = document.getElementById("entryVersion").value.trim();
+    let stockType = document.getElementById("entryStockType").value;
     let qty = parseInt(document.getElementById("entryQty").value) || 0;
     let date = document.getElementById("entryDate").value;
     let remarks = document.getElementById("entryRemarks").value.trim();
@@ -586,6 +611,7 @@ function saveStockEntry() {
     db.ref("store_entries").push({
         item: item,
         version: version,
+        stockType: stockType,
         qty: qty,
         date: date,
         remarks: remarks,
@@ -681,11 +707,13 @@ function processExcelBulkStockEntry() {
             let qty = parseInt(r.qty) || 0;
             let date = r.date || new Date().toISOString().split('T')[0];
             let remarks = r.remarks || "";
+            let stockType = r.stocktype || "General Stock";
             
             if(item && version && qty > 0) {
                 db.ref("store_entries").push({
                     item: item.trim(),
                     version: version.trim(),
+                    stockType: stockType.trim(),
                     qty: qty,
                     date: date,
                     remarks: remarks.trim(),
@@ -923,7 +951,6 @@ function collectDeviceDetails(containerId) {
     return arr;
 }
 
-// Global Quantity Breakdowns Popups
 function openQtyBreakdownModal(category, itemName, version) {
     let title = `${category} Breakdown - ${itemName} (${version})`;
     let html = `<table style="width:100%; border-collapse:collapse;">
@@ -965,7 +992,6 @@ function openQtyBreakdownModal(category, itemName, version) {
     document.getElementById("detailsModal").style.display = "block";
 }
 
-// Issue dynamic rows handler
 function addIssueRow() {
     issueRowCount++;
     let id = `issueRow_${issueRowCount}`;
@@ -976,6 +1002,12 @@ function addIssueRow() {
         <input type="text" class="issueItem" list="itemList" placeholder="Select Item Name" onchange="handleRowItemSelectionChange('${id}')" style="width:250px;">
         <input type="text" class="issueVersion" list="dl_${id}" placeholder="Version" style="width:120px;" onchange="loadRowLiveIMEIs('${id}')">
         <datalist id="dl_${id}" class="classVersionDL"></datalist>
+        
+        <select class="issueStockPool" style="font-weight: bold; border: 1px solid #002b5c;">
+            <option value="General Stock">General Stock Pool</option>
+            <option value="For Sale">For Sale Pool</option>
+            <option value="For Demo/Rent">For Demo/Rent Pool</option>
+        </select>
         
         <input type="number" class="issueQty" placeholder="Issued Qty" style="width:100px;" oninput="triggerRowDeviceFields('${id}')">
         
@@ -1105,6 +1137,7 @@ function saveGlobalIssues() {
     rows.forEach(r => {
         let item = r.querySelector(".issueItem").value.trim();
         let version = r.querySelector(".issueVersion").value.trim();
+        let stockPool = r.querySelector(".issueStockPool").value;
         let qty = parseInt(r.querySelector(".issueQty").value) || 0;
         let mode = r.querySelector(".imei-mode-select").value;
         
@@ -1136,7 +1169,7 @@ function saveGlobalIssues() {
             }
             
             db.ref("store_issues").push({
-                item: item, version: version, qty: qty,
+                item: item, version: version, qty: qty, stockPool: stockPool,
                 person: person, party: party, location: location,
                 purpose: purpose, remarks: remarks, date: date,
                 devices: devices
@@ -1162,7 +1195,6 @@ function saveGlobalIssues() {
     addIssueRow();
 }
 
-// Return dynamic rows handler
 function addReturnRow() {
     returnRowCount++;
     let id = `returnRow_${returnRowCount}`;
@@ -1173,6 +1205,12 @@ function addReturnRow() {
         <input type="text" class="returnItem" list="itemList" placeholder="Select Item Name" onchange="handleRowItemSelectionChange('${id}')" style="width:250px;">
         <input type="text" class="returnVersion" list="dl_${id}" placeholder="Version" style="width:120px;" onchange="loadRowOutIMEIs('${id}')">
         <datalist id="dl_${id}" class="classVersionDL"></datalist>
+        
+        <select class="returnStockPool" style="font-weight: bold; border: 1px solid #002b5c;">
+            <option value="General Stock">General Stock Pool</option>
+            <option value="For Sale">For Sale Pool</option>
+            <option value="For Demo/Rent">For Demo/Rent Pool</option>
+        </select>
         
         <input type="number" class="returnQty" placeholder="Return Qty" style="width:100px;" oninput="loadRowOutIMEIs('${id}')">
         
@@ -1312,6 +1350,7 @@ function saveGlobalReturns() {
     rows.forEach(r => {
         let item = r.querySelector(".returnItem").value.trim();
         let version = r.querySelector(".returnVersion").value.trim();
+        let stockPool = r.querySelector(".returnStockPool").value;
         let qty = parseInt(r.querySelector(".returnQty").value) || 0;
         let mode = r.querySelector(".return-imei-mode").value;
         
@@ -1337,7 +1376,7 @@ function saveGlobalReturns() {
             }
             
             db.ref("store_returns").push({
-                item: item, version: version, qty: qty,
+                item: item, version: version, qty: qty, stockPool: stockPool,
                 person: person, party: party, location: location,
                 purpose: purpose, status: status, remarks: remarks, date: date,
                 devices: devices
@@ -1384,9 +1423,7 @@ function buildItemMaster() {
     fill("locationList", locationsSet);
 }
 
-// Render Core Tables Data
 function renderTables() {
-    // 1. Stock Report Table View
     let reportBody = document.querySelector("#reportTable tbody");
     reportBody.innerHTML = "";
     
@@ -1398,7 +1435,8 @@ function renderTables() {
         let p = Object.values(receivedData).filter(x => x.item === item && x.version === version).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let i = Object.values(issueData).filter(x => x.item === item && x.version === version).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let r = Object.values(returnData).filter(x => x.item === item && x.version === version && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
-        let bal = globalCalculatedStock[key];
+        
+        let balData = globalCalculatedStock[key];
         
         let remarksSet = new Set();
         Object.values(entryData).filter(x => x.item === item && x.version === version && x.remarks).forEach(x => remarksSet.add(x.remarks));
@@ -1414,9 +1452,11 @@ function renderTables() {
             <td class="clickable-qty" onclick="openQtyBreakdownModal('Purchase', '${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">${p}</td>
             <td class="clickable-qty" onclick="openQtyBreakdownModal('Issue', '${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">${i}</td>
             <td class="clickable-qty" onclick="openQtyBreakdownModal('Return', '${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">${r}</td>
-            <td style="font-weight:bold; color:${bal < 0 ? 'red' : 'green'}">${bal}</td>
+            <td style="font-weight:bold; color:${balData.total < 0 ? 'red' : 'green'}">${balData.total}</td>
+            <td style="font-weight:bold; color:blue;">${balData.sale}</td>
+            <td style="font-weight:bold; color:orange;">${balData.demo}</td>
             <td>${remarksStr}</td>
-            <td><button class="detailsBtn" onclick="viewLiveDevicesPool('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">View Details (${bal})</button></td>
+            <td><button class="detailsBtn" onclick="viewLiveDevicesPool('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">View Details (${balData.total})</button></td>
             <td>
                 <button class="editBtn" onclick="openItemGlobalEdit('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">Edit</button>
                 <button class="deleteBtn" onclick="deleteEntireProductPool('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">Delete</button>
@@ -1424,7 +1464,6 @@ function renderTables() {
         </tr>`;
     });
 
-    // 2. Stock Entry Logs Tabular
     let entryBody = document.querySelector("#entryTable tbody");
     entryBody.innerHTML = "";
     sr = 1;
@@ -1435,6 +1474,7 @@ function renderTables() {
             <td>${sr++}</td>
             <td>${row.item}</td>
             <td>${row.version}</td>
+            <td><span style="padding: 2px 6px; background: #e2eafc; border-radius: 4px; font-weight: bold; font-size:11px;">${row.stockType || 'General Stock'}</span></td>
             <td>${row.qty}</td>
             <td>${formatDateDDMMYYYY(row.date)}</td>
             <td>${row.remarks || '-'}</td>
@@ -1446,7 +1486,6 @@ function renderTables() {
         </tr>`;
     });
 
-    // 3. Purchase Received Logs Tabular
     let recBody = document.querySelector("#receivedTable tbody");
     recBody.innerHTML = "";
     sr = 1;
@@ -1469,7 +1508,6 @@ function renderTables() {
         </tr>`;
     });
 
-    // 4. Issue Allocations Logs Tabular
     let issueBody = document.querySelector("#issueTable tbody");
     issueBody.innerHTML = "";
     sr = 1;
@@ -1480,6 +1518,7 @@ function renderTables() {
             <td>${sr++}</td>
             <td>${row.item}</td>
             <td>${row.version}</td>
+            <td><span style="font-weight:bold; color:blue;">${row.stockPool || 'General Stock'}</span></td>
             <td><strong>${row.qty}</strong></td>
             <td>${row.person || '-'}</td>
             <td><strong>${row.party}</strong></td>
@@ -1495,7 +1534,6 @@ function renderTables() {
         </tr>`;
     });
 
-    // 5. Returns Allocation Logs Tabular
     let returnBody = document.querySelector("#returnTable tbody");
     returnBody.innerHTML = "";
     sr = 1;
@@ -1506,6 +1544,7 @@ function renderTables() {
             <td>${sr++}</td>
             <td>${row.item}</td>
             <td>${row.version}</td>
+            <td><span style="font-weight:bold; color:green;">${row.stockPool || 'General Stock'}</span></td>
             <td><strong>${row.qty}</strong></td>
             <td>${row.person || '-'}</td>
             <td><strong>${row.party}</strong></td>
@@ -1522,7 +1561,6 @@ function renderTables() {
     });
 }
 
-// Render LIVE Summary Tracking Report Row By Row
 function renderSummaryTable() {
     let tbody = document.querySelector("#summaryTable tbody");
     tbody.innerHTML = "";
@@ -1651,14 +1689,36 @@ function openRowRecordModifier(node, key) {
         Object.keys(r).forEach(f => {
             if(f === 'devices') return;
             let val = r[f];
-            body.innerHTML += `
-            <div>
-                <label style="font-weight:bold; text-transform:capitalize;">${f}:</label><br>
-                <input type="text" id="field_${f}" value="${val}" style="width:90%">
-            </div>`;
+            
+            if(node === "store_entries" && f === "stockType") {
+                body.innerHTML += `
+                <div>
+                    <label style="font-weight:bold;">Stock Type:</label><br>
+                    <select id="field_${f}" style="width:94%; padding:8px; margin:4px;">
+                        <option value="General Stock" ${val === 'General Stock' ? 'selected' : ''}>General Stock</option>
+                        <option value="For Sale" ${val === 'For Sale' ? 'selected' : ''}>For Sale</option>
+                        <option value="For Demo/Rent" ${val === 'For Demo/Rent' ? 'selected' : ''}>For Demo/Rent</option>
+                    </select>
+                </div>`;
+            } else if((node === "store_issues" || node === "store_returns") && f === "stockPool") {
+                body.innerHTML += `
+                <div>
+                    <label style="font-weight:bold;">Stock Target Pool:</label><br>
+                    <select id="field_${f}" style="width:94%; padding:8px; margin:4px;">
+                        <option value="General Stock" ${val === 'General Stock' ? 'selected' : ''}>General Stock Pool</option>
+                        <option value="For Sale" ${val === 'For Sale' ? 'selected' : ''}>For Sale Pool</option>
+                        <option value="For Demo/Rent" ${val === 'For Demo/Rent' ? 'selected' : ''}>For Demo/Rent Pool</option>
+                    </select>
+                </div>`;
+            } else {
+                body.innerHTML += `
+                <div>
+                    <label style="font-weight:bold; text-transform:capitalize;">${f}:</label><br>
+                    <input type="text" id="field_${f}" value="${val}" style="width:90%">
+                </div>`;
+            }
         });
 
-        // IMEI & Serial No Dynamic Editing Section inside Modal
         let devBody = document.getElementById("rowEditDevicesBody");
         devBody.innerHTML = "";
         if(r.devices && r.devices.length > 0) {
@@ -1684,7 +1744,7 @@ function submitRowDataEdit() {
     let key = document.getElementById("editKeyHidden").value;
     
     let updates = {};
-    let formInputs = document.getElementById("rowEditFormBody").querySelectorAll("input");
+    let formInputs = document.getElementById("rowEditFormBody").querySelectorAll("input, select");
     formInputs.forEach(inp => {
         let field = inp.id.replace("field_", "");
         let val = inp.value.trim();
@@ -1692,7 +1752,6 @@ function submitRowDataEdit() {
         updates[field] = val;
     });
 
-    // Collecting updated device and IMEI inputs
     let updatedDevices = [];
     let devRows = document.querySelectorAll("#rowEditDevicesBody .edit-device-item-row");
     devRows.forEach(r => {
@@ -1708,7 +1767,7 @@ function submitRowDataEdit() {
     }
     
     db.ref(`${node}/${key}`).update(updates);
-    alert("Transaction Record Row along with IMEI mapping modified successfully inside cloud database sync!");
+    alert("Transaction Record Row along with Stock Type mapping modified successfully!");
     closeRowEditModal();
 }
 
@@ -1864,7 +1923,7 @@ function downloadCSV(tId, fName) {
             if (r.parentNode.tagName === "TBODY" && idx === totalCols - 1 && tId !== 'summaryTable') return;
             rD.push('="' + c.innerText.replace(/\"/g, '\"\"') + '"');
         });
-        if (rD.length > 0) csv.push(rD.join(","));
+        if (rD.length > 0) csv.push(rD.join("\n"));
     });
     
     let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
