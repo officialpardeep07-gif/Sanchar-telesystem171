@@ -568,22 +568,34 @@ function calculateStockPool() {
     itemsMap.forEach(key => {
         let [n, v] = key.split("|||");
         
+        // 1. Total Calculations (Overall)
         let e = Object.values(entryData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let p = Object.values(receivedData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let i = Object.values(issueData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let r = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         
-        // Logic Update: "For Sale" aur "For Demo/Rent" columns mein ab sirf Stock Entry ka original data hi show hoga. 
-        // Isme Issue ya Return hone par koi plus/minus nahi dikhega (Wo value bilkul unaffected rahegi).
-        let entrySale = Object.values(entryData).filter(x => x.item === n && x.version === v && x.stockType === "For Sale").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
-        let entryDemo = Object.values(entryData).filter(x => x.item === n && x.version === v && x.stockType === "For Demo/Rent").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        // 2. Pool-wise Calculations
+        // Pehle Entry ka total nikalein us pool mein
+        let entrySaleTotal = Object.values(entryData).filter(x => x.item === n && x.version === v && x.stockType === "For Sale").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        let entryDemoTotal = Object.values(entryData).filter(x => x.item === n && x.version === v && x.stockType === "For Demo/Rent").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
 
+        // Ab us pool se kitna issue hua wo minus karein
+        let issuedFromSalePool = Object.values(issueData).filter(x => x.item === n && x.version === v && x.stockPool === "For Sale").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        let issuedFromDemoPool = Object.values(issueData).filter(x => x.item === n && x.version === v && x.stockPool === "For Demo/Rent").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+
+        // Return logic (Agar return hua toh pool mein wapas add ho jayega)
+        let returnedToSalePool = Object.values(returnData).filter(x => x.item === n && x.version === v && x.stockPool === "For Sale" && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+        let returnedToDemoPool = Object.values(returnData).filter(x => x.item === n && x.version === v && x.stockPool === "For Demo/Rent" && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+
+        let finalSale = entrySaleTotal - issuedFromSalePool + returnedToSalePool;
+        let finalDemo = entryDemoTotal - issuedFromDemoPool + returnedToDemoPool;
+        
         let bal = e + p - i + r;
         
         globalCalculatedStock[key] = {
             total: bal,
-            sale: entrySale,
-            demo: entryDemo
+            sale: finalSale,
+            demo: finalDemo
         };
     });
 }
