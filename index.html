@@ -408,6 +408,33 @@
     </div>
 </div>
 
+<div id="addImeiModal" class="modal">
+    <div class="modal-content" style="width: 50%;">
+        <span class="close" onclick="closeAddImeiModal()">&times;</span>
+        <h3>🆔 Add/Update Missing IMEIs (Stock Report)</h3>
+        <p id="addImeiModalSubtitle" style="font-size:13px; color:#555;"></p>
+        <input type="hidden" id="addImeiItemHidden">
+        <input type="hidden" id="addImeiVersionHidden">
+        
+        <div style="margin-bottom: 10px;">
+            <label style="font-weight:bold;">Select Target Stock Entry to Attach IMEI:</label><br>
+            <select id="addImeiTargetEntrySelect" style="width:96%; padding:8px; font-weight:bold; margin-top:5px;"></select>
+        </div>
+        
+        <div style="margin-bottom:10px;">
+            <label style="font-weight:bold;">Number of Devices to Add:</label><br>
+            <input type="number" id="addImeiQtyInput" placeholder="Enter count" min="1" oninput="generateAddImeiInputs()" style="width:50%; padding:8px;">
+        </div>
+        
+        <div id="addImeiDynamicContainer" style="max-height: 250px; overflow-y: auto; background:#f9f9f9; padding:10px; border-radius:4px; border:1px dashed #ccc;"></div>
+        
+        <div style="text-align:right; margin-top:15px;">
+            <button onclick="closeAddImeiModal()" style="background:#6c757d; color:white; font-weight:bold;">Cancel</button>
+            <button class="saveBtn" onclick="submitNewImeiToStock()" style="padding:8px 20px;">Save Device Details</button>
+        </div>
+    </div>
+</div>
+
 <div id="detailsModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="document.getElementById('detailsModal').style.display='none'">&times;</span>
@@ -425,28 +452,23 @@
 <datalist id="locationList"></datalist>
 
 <script>
-    // Right-click disable karne ke liye
 document.addEventListener('contextmenu', event => event.preventDefault());
 
-// Short-keys (F12, Ctrl+Shift+I, etc.) block karne ke liye
 document.onkeydown = function(e) {
-    // F12 key
     if (e.keyCode == 123) {
         return false;
     }
-    // Ctrl+Shift+I (Inspect Element)
     if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
         return false;
     }
-    // Ctrl+Shift+J (Console)
     if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
         return false;
     }
-    // Ctrl+U (View Source)
     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
         return false;
     }
 };
+
 let currentGeneratedOTP = null;
 let issueRowCount = 0;
 let returnRowCount = 0;
@@ -590,22 +612,17 @@ function calculateStockPool() {
     itemsMap.forEach(key => {
         let [n, v] = key.split("|||");
         
-        // 1. Total Calculations (Overall)
         let e = Object.values(entryData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let p = Object.values(receivedData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let i = Object.values(issueData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let r = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         
-        // 2. Pool-wise Calculations
-        // Pehle Entry ka total nikalein us pool mein
         let entrySaleTotal = Object.values(entryData).filter(x => x.item === n && x.version === v && x.stockType === "For Sale").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let entryDemoTotal = Object.values(entryData).filter(x => x.item === n && x.version === v && x.stockType === "For Demo/Rent").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
 
-        // Ab us pool se kitna issue hua wo minus karein
         let issuedFromSalePool = Object.values(issueData).filter(x => x.item === n && x.version === v && x.stockPool === "For Sale").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let issuedFromDemoPool = Object.values(issueData).filter(x => x.item === n && x.version === v && x.stockPool === "For Demo/Rent").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
 
-        // Return logic (Agar return hua toh pool mein wapas add ho jayega)
         let returnedToSalePool = Object.values(returnData).filter(x => x.item === n && x.version === v && x.stockPool === "For Sale" && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let returnedToDemoPool = Object.values(returnData).filter(x => x.item === n && x.version === v && x.stockPool === "For Demo/Rent" && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
 
@@ -890,6 +907,106 @@ function openQtyBreakdownModal(category, itemName, version) {
     document.getElementById("modalTitle").innerText = title;
     document.getElementById("modalBody").innerHTML = html;
     document.getElementById("detailsModal").style.display = "block";
+}
+
+function openAddImeiModal(item, version) {
+    document.getElementById("addImeiItemHidden").value = item;
+    document.getElementById("addImeiVersionHidden").value = version;
+    document.getElementById("addImeiModalSubtitle").innerText = `Item: ${item} | Version: ${version}`;
+    document.getElementById("addImeiQtyInput").value = "";
+    document.getElementById("addImeiDynamicContainer").innerHTML = "";
+    
+    let select = document.getElementById("addImeiTargetEntrySelect");
+    select.innerHTML = "";
+    
+    let entries = Object.keys(entryData).filter(k => entryData[k].item === item && entryData[k].version === version);
+    
+    if(entries.length === 0) {
+        select.innerHTML = `<option value="">-- No Stock Entries Found for this Product --</option>`;
+    } else {
+        entries.forEach(k => {
+            let e = entryData[k];
+            let currentDeviceCount = e.devices ? e.devices.length : 0;
+            select.innerHTML += `<option value="${k}">Date: ${formatDateDDMMYYYY(e.date)} | Pool: ${e.stockType || 'General'} | Total Qty: ${e.qty} (Already Has ${currentDeviceCount} IMEIs)</option>`;
+        });
+    }
+    
+    document.getElementById("addImeiModal").style.display = "block";
+}
+
+function generateAddImeiInputs() {
+    let qty = parseInt(document.getElementById("addImeiQtyInput").value) || 0;
+    let container = document.getElementById("addImeiDynamicContainer");
+    container.innerHTML = "";
+    
+    if(qty <= 0) return;
+    
+    for(let i = 0; i < qty; i++) {
+        container.innerHTML += `
+        <div class="device-entry-row post-imei-row" style="background:#fff; border:1px solid #ccc; padding:6px; margin-bottom:5px;">
+            <span style="font-weight:bold;">#${i+1}</span>
+            <input type="text" class="postSerial" placeholder="Serial No" style="width:30%;" required>
+            <input type="text" class="postImei1" placeholder="IMEI 1" style="width:30%;">
+            <input type="text" class="postImei2" placeholder="IMEI 2" style="width:30%;">
+        </div>`;
+    }
+}
+
+function submitNewImeiToStock() {
+    let entryKey = document.getElementById("addImeiTargetEntrySelect").value;
+    if(!entryKey) {
+        alert("Please select a valid Stock Entry transaction to tag these IMEIs!");
+        return;
+    }
+    
+    let rows = document.querySelectorAll(".post-imei-row");
+    if(rows.length === 0) {
+        alert("Please specify 'Number of Devices' and fill serial codes first.");
+        return;
+    }
+    
+    let targetEntry = entryData[entryKey];
+    let existingDevices = targetEntry.devices || [];
+    let newDevices = [];
+    let validationFailed = false;
+    
+    rows.forEach(r => {
+        let s = r.querySelector(".postSerial").value.trim();
+        let i1 = r.querySelector(".postImei1").value.trim();
+        let i2 = r.querySelector(".postImei2").value.trim();
+        
+        if(!s) {
+            validationFailed = true;
+        } else {
+            newDevices.push({ serial: s, imei1: i1, imei2: i2 });
+        }
+    });
+    
+    if(validationFailed) {
+        alert("Serial No is mandatory for all device rows added!");
+        return;
+    }
+    
+    let totalDevicesAfterUpdate = existingDevices.concat(newDevices);
+    
+    if(totalDevicesAfterUpdate.length > targetEntry.qty) {
+        if(!confirm(`Warning: Total saved IMEI/Serials (${totalDevicesAfterUpdate.length}) will exceed the original Stock Entry quantity (${targetEntry.qty}). Do you still want to force save?`)) {
+            return;
+        }
+    }
+    
+    db.ref(`store_entries/${entryKey}`).update({
+        devices: totalDevicesAfterUpdate
+    }).then(() => {
+        alert("Missing Device IMEIs added successfully into matching Stock Warehouse history logs!");
+        closeAddImeiModal();
+    }).catch(err => {
+        alert("Database transaction failed: " + err.message);
+    });
+}
+
+function closeAddImeiModal() {
+    document.getElementById("addImeiModal").style.display = "none";
 }
 
 function handleItemSelectionChange(itemInputId, targetDatalistId) {
@@ -1450,7 +1567,7 @@ function saveGlobalReturns() {
     alert(`Successfully processed and loaded back ${validCount} returned line items.`);
     document.getElementById("returnPerson").value = "";
     document.getElementById("returnParty").value = "";
-    document.getElementById("location").value = "";
+    document.getElementById("returnLocation").value = "";
     document.getElementById("returnPurpose").value = "";
     document.getElementById("customReturnPurpose").value = "";
     document.getElementById("returnDate").value = "";
@@ -1515,6 +1632,7 @@ function renderTables() {
             <td>${remarksStr}</td>
             <td><button class="detailsBtn" onclick="viewLiveDevicesPool('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">View Details (${balData.total})</button></td>
             <td>
+                <button class="addBtn" onclick="openAddImeiModal('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')" style="background:#28a745; margin-bottom:2px;">+ Add IMEI</button>
                 <button class="editBtn" onclick="openItemGlobalEdit('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">Edit</button>
                 <button class="deleteBtn" onclick="deleteEntireProductPool('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">Delete</button>
             </td>
@@ -1978,9 +2096,12 @@ function downloadCSV(tId, fName) {
         r.querySelectorAll("td,th").forEach((c, idx) => {
             let totalCols = r.querySelectorAll("td,th").length;
             if (r.parentNode.tagName === "TBODY" && idx === totalCols - 1 && tId !== 'summaryTable') return;
-            rD.push('="' + c.innerText.replace(/\"/g, '\"\"') + '"');
+            
+            // Fixed undefined property check to avoid replace error
+            let cellText = c && c.innerText ? c.innerText : "";
+            rD.push('="' + cellText.replace(/"/g, '""') + '"');
         });
-        if (rD.length > 0) csv.push(rD.join("\n"));
+        if (rD.length > 0) csv.push(rD.join(","));
     });
     
     let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
