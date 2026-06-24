@@ -425,6 +425,28 @@
 <datalist id="locationList"></datalist>
 
 <script>
+    // Right-click disable karne ke liye
+document.addEventListener('contextmenu', event => event.preventDefault());
+
+// Short-keys (F12, Ctrl+Shift+I, etc.) block karne ke liye
+document.onkeydown = function(e) {
+    // F12 key
+    if (e.keyCode == 123) {
+        return false;
+    }
+    // Ctrl+Shift+I (Inspect Element)
+    if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+        return false;
+    }
+    // Ctrl+Shift+J (Console)
+    if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+        return false;
+    }
+    // Ctrl+U (View Source)
+    if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+        return false;
+    }
+};
 let currentGeneratedOTP = null;
 let issueRowCount = 0;
 let returnRowCount = 0;
