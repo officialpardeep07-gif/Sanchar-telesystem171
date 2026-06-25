@@ -639,6 +639,46 @@ function calculateStockPool() {
     });
 }
 
+function checkDuplicateImeiOrSerial(newDevices, ignoreKey = null) {
+    let duplicateFound = null;
+    
+    const checkPool = (dataPool) => {
+        if (duplicateFound) return;
+        Object.keys(dataPool).forEach(key => {
+            if (ignoreKey && key === ignoreKey) return;
+            let record = dataPool[key];
+            if (record.devices && Array.isArray(record.devices)) {
+                record.devices.forEach(existingDev => {
+                    newDevices.forEach(newDev => {
+                        if (duplicateFound) return;
+                        
+                        let sNew = newDev.serial ? newDev.serial.trim().toLowerCase() : "";
+                        let i1New = newDev.imei1 ? newDev.imei1.trim().toLowerCase() : "";
+                        let i2New = newDev.imei2 ? newDev.imei2.trim().toLowerCase() : "";
+                        
+                        let sExist = existingDev.serial ? existingDev.serial.trim().toLowerCase() : "";
+                        let i1Exist = existingDev.imei1 ? existingDev.imei1.trim().toLowerCase() : "";
+                        let i2Exist = existingDev.imei2 ? existingDev.imei2.trim().toLowerCase() : "";
+                        
+                        if (sNew && sNew === sExist) {
+                            duplicateFound = `Serial No: ${newDev.serial}`;
+                        } else if (i1New && (i1New === i1Exist || i1New === i2Exist)) {
+                            duplicateFound = `IMEI 1: ${newDev.imei1}`;
+                        } else if (i2New && (i2New === i1Exist || i2New === i2Exist)) {
+                            duplicateFound = `IMEI 2: ${newDev.imei2}`;
+                        }
+                    });
+                });
+            }
+        });
+    };
+
+    checkPool(entryData);
+    checkPool(receivedData);
+    
+    return duplicateFound;
+}
+
 function saveStockEntry() {
     let item = document.getElementById("entryItem").value.trim();
     let version = document.getElementById("entryVersion").value.trim();
@@ -652,6 +692,14 @@ function saveStockEntry() {
         return;
     }
     let devices = collectDeviceDetails("entryDevicesContainer");
+    
+    if(devices.length > 0) {
+        let duplicateMessage = checkDuplicateImeiOrSerial(devices);
+        if(duplicateMessage) {
+            alert(`⛔ All Ready Entry! This ${duplicateMessage} is already entered in the system. Duplicate entry is not allowed.`);
+            return;
+        }
+    }
     
     db.ref("store_entries").push({
         item: item,
@@ -687,6 +735,14 @@ function saveReceived() {
         return;
     }
     let devices = collectDeviceDetails("recDevicesContainer");
+    
+    if(devices.length > 0) {
+        let duplicateMessage = checkDuplicateImeiOrSerial(devices);
+        if(duplicateMessage) {
+            alert(`⛔ All Ready Entry! This ${duplicateMessage} is already entered in the system. Duplicate entry is not allowed.`);
+            return;
+        }
+    }
     
     db.ref("store_received").push({
         item: item,
@@ -839,6 +895,30 @@ function toggleCustomReturnPurposeField() {
     }
 }
 
+// Fixed download column shift issue
+function downloadCSV(tId, fName) {
+    let csv = [];
+    document.querySelectorAll(`#${tId} tr`).forEach(r => {
+        if (r.style.display === "none") return;
+        let rD = [];
+        let cols = r.querySelectorAll("td,th");
+        cols.forEach((c, idx) => {
+            if (r.parentNode.tagName === "TBODY" && idx === cols.length - 1 && tId !== 'summaryTable') return;
+            let cellText = c && c.innerText ? c.innerText : "";
+            rD.push('="' + cellText.replace(/"/g, '""') + '"');
+        });
+        if (rD.length > 0) csv.push(rD.join(","));
+    });
+    
+    let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+    let link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", fName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 function openStockEntryBreakdownModal(itemName, version) {
     let title = `Stock Entry Breakdown - ${itemName} (${version})`;
     let html = `<table style="width:100%; border-collapse:collapse;">
@@ -984,6 +1064,12 @@ function submitNewImeiToStock() {
     
     if(validationFailed) {
         alert("Serial No is mandatory for all device rows added!");
+        return;
+    }
+    
+    let duplicateMessage = checkDuplicateImeiOrSerial(newDevices, entryKey);
+    if(duplicateMessage) {
+        alert(`⛔ All Ready Entry! This ${duplicateMessage} is already entered in the system. Duplicate entry is not allowed.`);
         return;
     }
     
@@ -1937,7 +2023,15 @@ function submitRowDataEdit() {
             updatedDevices.push({ serial: s, imei1: i1, imei2: i2 });
         }
     });
-    if(updatedDevices.length > 0 || (devRows.length > 0)) {
+    
+    if(updatedDevices.length > 0) {
+        let duplicateMessage = checkDuplicateImeiOrSerial(updatedDevices, key);
+        if(duplicateMessage) {
+            alert(`⛔ All Ready Entry! This ${duplicateMessage} is already entered in the system. Modification denied.`);
+            return;
+        }
+        updates['devices'] = updatedDevices;
+    } else if(devRows.length > 0) {
         updates['devices'] = updatedDevices;
     }
     
@@ -2086,31 +2180,6 @@ function showSection(id) {
     document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
     let target = document.getElementById(id);
     if(target) target.classList.add("active");
-}
-
-function downloadCSV(tId, fName) {
-    let csv = [];
-    document.querySelectorAll(`#${tId} tr`).forEach(r => {
-        if (r.style.display === "none") return;
-        let rD = [];
-        r.querySelectorAll("td,th").forEach((c, idx) => {
-            let totalCols = r.querySelectorAll("td,th").length;
-            if (r.parentNode.tagName === "TBODY" && idx === totalCols - 1 && tId !== 'summaryTable') return;
-            
-            // Fixed undefined property check to avoid replace error
-            let cellText = c && c.innerText ? c.innerText : "";
-            rD.push('="' + cellText.replace(/"/g, '""') + '"');
-        });
-        if (rD.length > 0) csv.push(rD.join(","));
-    });
-    
-    let blob = new Blob([csv.join("\n")], { type: 'text/csv;charset=utf-8;' });
-    let link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", fName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 }
 </script>
 </body>
