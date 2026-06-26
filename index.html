@@ -976,9 +976,9 @@ function collectDeviceDetails(containerId) {
     if(!container) return arr;
     let rows = container.getElementsByClassName("device-entry-row");
     for(let i=0; i<rows.length; i++) {
-        let s = rows[i].getElementsByClassName("dev-serial")[0].value.trim();
-        let i1 = rows[i].getElementsByClassName("dev-imei1")[0].value.trim();
-        let i2 = rows[i].getElementsByClassName("dev-imei2")[0].value.trim();
+        let s = rows[i].getElementsByClassName("dev-serial")[0]?.value.trim() || "";
+        let i1 = rows[i].getElementsByClassName("dev-imei1")[0]?.value.trim() || "";
+        let i2 = rows[i].getElementsByClassName("dev-imei2")[0]?.value.trim() || "";
         if(s || i1 || i2) {
             arr.push({ serial: s, imei1: i1, imei2: i2 });
         }
@@ -1330,44 +1330,46 @@ function submitGlobalItemEdit() {
 }
 
 function openRowEditModal(node, key) {
-    document.getElementById("editNodeHidden").value = node;
-    document.getElementById("editKeyHidden").value = key;
-    
-    let record = node === 'store_entries' ? entryData[key] : node === 'store_received' ? receivedData[key] : node === 'store_issues' ? issueData[key] : returnData[key];
-    if(!record) return;
+    requireSecurePassword(() => {
+        document.getElementById("editNodeHidden").value = node;
+        document.getElementById("editKeyHidden").value = key;
+        
+        let record = node === 'store_entries' ? entryData[key] : node === 'store_received' ? receivedData[key] : node === 'store_issues' ? issueData[key] : returnData[key];
+        if(!record) return;
 
-    let body = document.getElementById("rowEditFormBody");
-    body.innerHTML = "";
+        let body = document.getElementById("rowEditFormBody");
+        body.innerHTML = "";
 
-    Object.keys(record).forEach(k => {
-        if(k === 'devices' || k === 'stockPool' || k === 'stockPoolSource' || k === 'stockPoolDestination') return;
-        let div = document.createElement("div");
-        div.innerHTML = `<label style='font-weight:bold;text-transform:capitalize;'>${k}:</label><br>
-                         <input type='text' id='editField_${k}' value='${record[k]}' style='width:90%; padding:4px;'>`;
-        body.appendChild(div);
-    });
-
-    let devBody = document.getElementById("rowEditDevicesBody");
-    devBody.innerHTML = "";
-    let devices = record.devices || [];
-    
-    if(devices.length === 0) {
-        devBody.innerHTML = "<p style='color:#777; font-style:italic;'>No explicit Serial/IMEIs attached to this row schema context.</p>";
-    } else {
-        devices.forEach((d, i) => {
-            let row = document.createElement("div");
-            row.className = "device-entry-row";
-            row.innerHTML = `
-                <strong>#${i+1}</strong>
-                <input type="text" class="edit-dev-serial" value="${d.serial || ''}" placeholder="Serial" style="width:28%">
-                <input type="text" class="edit-dev-imei1" value="${d.imei1 || ''}" placeholder="IMEI 1" style="width:32%">
-                <input type="text" class="edit-dev-imei2" value="${d.imei2 || ''}" placeholder="IMEI 2" style="width:32%">
-            `;
-            devBody.appendChild(row);
+        Object.keys(record).forEach(k => {
+            if(k === 'devices' || k === 'stockPool' || k === 'stockPoolSource' || k === 'stockPoolDestination') return;
+            let div = document.createElement("div");
+            div.innerHTML = `<label style='font-weight:bold;text-transform:capitalize;'>${k}:</label><br>
+                             <input type='text' id='editField_${k}' value='${record[k]}' style='width:90%; padding:4px;'>`;
+            body.appendChild(div);
         });
-    }
 
-    document.getElementById("globalRowEditModal").style.display = "block";
+        let devBody = document.getElementById("rowEditDevicesBody");
+        devBody.innerHTML = "";
+        let devices = record.devices || [];
+        
+        if(devices.length === 0) {
+            devBody.innerHTML = "<p style='color:#777; font-style:italic;'>No explicit Serial/IMEIs attached to this row schema context.</p>";
+        } else {
+            devices.forEach((d, i) => {
+                let row = document.createElement("div");
+                row.className = "device-entry-row";
+                row.innerHTML = `
+                    <strong>#${i+1}</strong>
+                    <input type="text" class="edit-dev-serial" value="${d.serial || ''}" placeholder="Serial" style="width:28%">
+                    <input type="text" class="edit-dev-imei1" value="${d.imei1 || ''}" placeholder="IMEI 1" style="width:32%">
+                    <input type="text" class="edit-dev-imei2" value="${d.imei2 || ''}" placeholder="IMEI 2" style="width:32%">
+                `;
+                devBody.appendChild(row);
+            });
+        }
+
+        document.getElementById("globalRowEditModal").style.display = "block";
+    });
 }
 
 function closeRowEditModal() {
@@ -1489,6 +1491,11 @@ function addReturnRow() {
         <div id="ret-imei-box-${returnRowCount}" class="live-imei-box" style="display:none;"></div>
     `;
     container.appendChild(div);
+}
+
+function removeDynamicRow(id) {
+    let el = document.getElementById(id);
+    if(el) el.remove();
 }
 
 function removeDynamicRow(id) {
@@ -1636,9 +1643,9 @@ function saveGlobalIssues() {
         if(mode === 'MANUAL') {
             let entryRows = box.getElementsByClassName("device-entry-row");
             for(let j=0; j<entryRows.length; j++) {
-                let s = entryRows[j].getElementsByClassName("dev-serial")[0].value.trim();
-                let i1 = entryRows[j].getElementsByClassName("dev-imei1")[0].value.trim();
-                let i2 = entryRows[j].getElementsByClassName("dev-imei2")[0].value.trim();
+                let s = entryRows[j].getElementsByClassName("dev-serial")[0]?.value.trim() || "";
+                let i1 = entryRows[j].getElementsByClassName("dev-imei1")[0]?.value.trim() || "";
+                let i2 = entryRows[j].getElementsByClassName("dev-imei2")[0]?.value.trim() || "";
                 if(s || i1 || i2) devices.push({ serial: s, imei1: i1, imei2: i2 });
             }
         } else {
@@ -1650,10 +1657,6 @@ function saveGlobalIssues() {
                     imei2: c.getAttribute("data-imei2")
                 });
             });
-            if(devices.length !== qty) {
-                alert(`Line #${i+1}: Checked live tags (${devices.length}) must match line context entry quantity (${qty})!`);
-                return;
-            }
         }
 
         logsToSave.push({
@@ -1710,10 +1713,10 @@ function saveGlobalReturns() {
         if(mode === 'MANUAL') {
             let entryRows = box.getElementsByClassName("device-entry-row");
             for(let j=0; j<entryRows.length; j++) {
-                let s = entryRows[j].getElementsByClassName("dev-serial")[0].value.trim();
-                let i1 = entryRows[j].getElementsByClassName("dev-imei1")[0].value.trim();
-                let i2 = entryRows[j].getElementsByClassName("dev-imei2")[0].value.trim();
-                if(s || i1 || i2) devices.push({ serial: s, imei1: i1, imei2: i2 });
+                let s = entryRows[j].getElementsByClassName("dev-serial")[0]?.value.trim() || "";
+                let i1 = entryRows[j].getElementsByClassName("dev-imei1")[0]?.value.trim() || "";
+                let i2 = entryRows[j].getElementsByClassName("dev-imei2")[0]?.value.trim() || "";
+                if(s || i1 || i2) devices.push({ serial: s, imei1: i1, i2: i2 });
             }
         } else {
             let chks = box.querySelectorAll(".live-chkbx:checked");
@@ -1724,10 +1727,6 @@ function saveGlobalReturns() {
                     imei2: c.getAttribute("data-imei2")
                 });
             });
-            if(devices.length !== qty) {
-                alert(`Line #${i+1}: Checked items (${devices.length}) must match line transaction statement quantity (${qty})!`);
-                return;
-            }
         }
 
         logsToSave.push({
