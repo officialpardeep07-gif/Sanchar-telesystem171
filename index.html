@@ -101,7 +101,7 @@
         <button onclick="showSection('summarySection')">Summary Report</button>
     </div>
 
-    <!-- NEW TOOLS SECTION -->
+    <!-- MODIFIED TOOLS SECTION WITH SEARCH OPTION -->
     <div id="toolsSection" class="section">
         <h2>🛠️ Admin Control Tools</h2>
         <div class="tools-config-box">
@@ -112,6 +112,7 @@
                 <option value="issue">Issue Item Logs</option>
                 <option value="return">Return Item Logs</option>
             </select>
+            <input type="text" id="toolsSearchInput" placeholder="Search logs here..." onkeyup="searchTable(this, 'toolsActionTable')" style="padding:10px; width:200px; margin-left:15px; border:2px solid #002b5c; font-weight:bold;">
             <button class="restoreBtn" onclick="restoreData()" style="padding:10px 15px; margin-left:15px;">Restore Deleted</button>
         </div>
 
@@ -1317,12 +1318,17 @@ function restoreData() {
     });
 }
 
-// SLIDE/DROPDOWN CONTROLLER FOR TOOLS POPULATION
+// SLIDE/DROPDOWN CONTROLLER FOR TOOLS POPULATION WITH SEARCH FIELD DISPATCH RESET
 function switchToolsTable() {
     let type = document.getElementById("toolsWorkSelect").value;
     let head = document.getElementById("toolsTableHead");
     let tbody = document.querySelector("#toolsActionTable tbody");
     let title = document.getElementById("toolsTableTitle");
+    
+    // Clear search filter state when changing category layout context
+    let searchField = document.getElementById("toolsSearchInput");
+    if(searchField) searchField.value = "";
+
     tbody.innerHTML = "";
 
     if (type === 'entry') {
