@@ -16,6 +16,7 @@
         .container{width:95%;margin:auto;padding:15px}
         .menu{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap}
         .menu button{background:#002b5c;color:#fff;border:none;padding:10px 15px;border-radius:5px;cursor:pointer;font-weight:bold}
+        .menu button.toolsBtn{background:#ffc107;color:#000;}
         .section{display:none;background:#fff;padding:15px;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);margin-bottom:15px}
         .active{display:block}
         input,select,button{padding:8px;margin:4px;border:1px solid #ccc;border-radius:4px}
@@ -51,6 +52,7 @@
         .status-na {background-color:#6c757d;}
         .tracking-link {color: #0066cc; text-decoration: underline; cursor: pointer;}
         .imei-mode-select {padding: 4px; font-weight: bold; margin: 4px; border: 1px solid #002b5c; border-radius: 4px;}
+        .tools-config-box {background:#fff3cd; border:2px solid #ffeeba; padding:15px; border-radius:8px; margin-bottom:20px;}
     </style>
 </head>
 <body>
@@ -89,6 +91,7 @@
     
 <div class="container">
     <div class="menu">
+        <button class="toolsBtn" onclick="handleToolsAccess()">🛠️ Tools</button>
         <button onclick="showSection('stockReport')">Stock Report</button>
         <button onclick="showSection('stockEntry')">Stock Entry</button>
         <button onclick="showSection('received')">Received</button>
@@ -96,6 +99,29 @@
         <button onclick="showSection('returnSection')">Return</button>
         <button onclick="showSection('faultySection')">Faulty</button>
         <button onclick="showSection('summarySection')">Summary Report</button>
+    </div>
+
+    <!-- NEW TOOLS SECTION -->
+    <div id="toolsSection" class="section">
+        <h2>🛠️ Admin Control Tools</h2>
+        <div class="tools-config-box">
+            <label style="font-weight:bold; font-size:16px;">Kesh pe work karna hai select karein (Slide View):</label>
+            <select id="toolsWorkSelect" onchange="switchToolsTable()" style="padding:10px; font-weight:bold; width:250px; border:2px solid #002b5c;">
+                <option value="entry">Stock Entry Logs</option>
+                <option value="rec">Received / Purchase Logs</option>
+                <option value="issue">Issue Item Logs</option>
+                <option value="return">Return Item Logs</option>
+            </select>
+            <button class="restoreBtn" onclick="restoreData()" style="padding:10px 15px; margin-left:15px;">Restore Deleted</button>
+        </div>
+
+        <div id="toolsTableContainer">
+            <h3 id="toolsTableTitle">Stock Entry Logs Master Action Control</h3>
+            <table id="toolsActionTable">
+                <thead><tr id="toolsTableHead"></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 
     <div id="stockReport" class="section active">
@@ -106,7 +132,6 @@
                 <label>From:</label><input type="date" id="repFromDate" onchange="filterByDate('reportTable', 11, 'repFromDate', 'repToDate')">
                 <label>To:</label><input type="date" id="repToDate" onchange="filterByDate('reportTable', 11, 'repFromDate', 'repToDate')">
                 <button class="downloadBtn" onclick="downloadCSV('reportTable','Stock_Report.csv')">Download Report</button>
-                <button class="restoreBtn" onclick="restoreData()">Restore Deleted</button>
             </div>
             <div id="syncStatus" style="color:#666;font-style:italic">Connecting...</div>
         </div>
@@ -185,7 +210,7 @@
         </div>
         <table id="entryTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Type</th><th>Status</th><th>Qty</th><th>Date</th><th>Remarks</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Type</th><th>Status</th><th>Qty</th><th>Date</th><th>Remarks</th><th>Device Details</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -235,7 +260,7 @@
         </div>
         <table id="receivedTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Bill No</th><th>Supplier</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Bill No</th><th>Supplier</th><th>Date</th><th>Device Details</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -278,7 +303,7 @@
         </div>
         <table id="issueTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Pool Source</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Pool Source</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -322,7 +347,7 @@
         </div>
         <table id="returnTable">
             <thead>
-                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Pool Destination</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Status</th><th>Date</th><th>Device Details</th><th>Action</th></tr>
+                <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Pool Destination</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Status</th><th>Date</th><th>Device Details</th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -498,11 +523,11 @@ let issueRowCount = 0;
 let returnRowCount = 0;
 let globalCalculatedStock = {}; 
 let pendingSecurityAction = null;
+let isToolsAuthenticated = false; // Tracks tool section password active state
 
 if(!localStorage.getItem("store_user")) localStorage.setItem("store_user", "Sanchar");
 if(!localStorage.getItem("store_pass")) localStorage.setItem("store_pass", "Sanchar@171");
 
-// Auto load local storage data arrays for Party Name & Location Autocomplete Lists
 function initAutoCompleteData() {
     ['partyList', 'locationList'].forEach(id => {
         let stored = localStorage.getItem("local_" + id);
@@ -540,6 +565,20 @@ document.getElementById("password").addEventListener("keyup", function(event) {
 document.getElementById("securityPasswordInput").addEventListener("keyup", function(event) {
     if (event.key === "Enter") submitSecurityPassword();
 });
+
+// TOOLS ACCESS WITH AUTOMATIC RESET STATE
+function handleToolsAccess() {
+    if (isToolsAuthenticated) {
+        showSection('toolsSection');
+        switchToolsTable();
+    } else {
+        requireSecurePassword(() => {
+            isToolsAuthenticated = true;
+            showSection('toolsSection');
+            switchToolsTable();
+        });
+    }
+}
 
 function requireSecurePassword(callback) {
     pendingSecurityAction = callback;
@@ -649,6 +688,7 @@ function updateApp(){
     renderTables();
     renderSummaryTable();
     renderFaultyTable();
+    switchToolsTable();
     
     if(document.getElementById("issueRowsContainer").children.length === 0) {
         addIssueRow();
@@ -667,13 +707,11 @@ function calculateStockPool() {
     itemsMap.forEach(key => {
         let [n, v] = key.split("|||");
         
-        // Only sum elements where qualitystatus/status is Ok or undefined (legacy keys support)
         let e = Object.values(entryData).filter(x => x.item === n && x.version === v && (x.qualityStatus === "Ok" || !x.qualityStatus)).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let p = Object.values(receivedData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let i = Object.values(issueData).filter(x => x.item === n && x.version === v).reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let r = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         
-        // Faulty tracking calculation
         let faultyEntries = Object.values(entryData).filter(x => x.item === n && x.version === v && x.qualityStatus === "Faulty").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let faultyReturns = Object.values(returnData).filter(x => x.item === n && x.version === v && x.status === "Faulty").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let fTotal = faultyEntries + faultyReturns;
@@ -1103,7 +1141,11 @@ function handleItemSelectionChange(itemId, versionId) {
     }
 }
 
+// ENHANCED TO RESET TOOLS SESSION STATE WHEN LEAVING SECTION
 function showSection(id) {
+    if (id !== 'toolsSection') {
+        isToolsAuthenticated = false; // Lock tools again automatically
+    }
     document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
     document.getElementById(id).classList.add("active");
 }
@@ -1251,32 +1293,79 @@ function downloadCSV(tableId, filename) {
 }
 
 function deleteRowSecurely(node, key) {
-    requireSecurePassword(() => {
-        if(confirm("Are you absolutely sure you want to delete this log entry permanently? All calculated totals will adjust.")) {
-            let backupTarget = db.ref(node + "/" + key);
-            backupTarget.once("value", snap => {
-                let val = snap.val();
-                if(val) {
-                    db.ref("deleted_backup").push({ originalNode: node, data: val, deletedAt: new Date().toLocaleString() });
-                    backupTarget.remove().then(() => alert("Record trashed successfully. Balances recalculated."));
-                }
-            });
-        }
-    });
+    if(confirm("Are you absolutely sure you want to delete this log entry permanently? All calculated totals will adjust.")) {
+        let backupTarget = db.ref(node + "/" + key);
+        backupTarget.once("value", snap => {
+            let val = snap.val();
+            if(val) {
+                db.ref("deleted_backup").push({ originalNode: node, data: val, deletedAt: new Date().toLocaleString() });
+                backupTarget.remove().then(() => alert("Record trashed successfully. Balances recalculated."));
+            }
+        });
+    }
 }
 
 function restoreData() {
-    requireSecurePassword(() => {
-        let keys = Object.keys(deletedBackup);
-        if(keys.length === 0) { alert("Trash Bin is empty! No backups tracked on server."); return; }
-        let lastKey = keys[keys.length - 1];
-        let target = deletedBackup[lastKey];
-        
-        db.ref(target.originalNode).push(target.data).then(() => {
-            db.ref("deleted_backup/" + lastKey).remove();
-            alert(`Successfully restored transactional data entry log into [${target.originalNode}] node repository.`);
-        });
+    let keys = Object.keys(deletedBackup);
+    if(keys.length === 0) { alert("Trash Bin is empty! No backups tracked on server."); return; }
+    let lastKey = keys[keys.length - 1];
+    let target = deletedBackup[lastKey];
+    
+    db.ref(target.originalNode).push(target.data).then(() => {
+        db.ref("deleted_backup/" + lastKey).remove();
+        alert(`Successfully restored transactional data entry log into [${target.originalNode}] node repository.`);
     });
+}
+
+// SLIDE/DROPDOWN CONTROLLER FOR TOOLS POPULATION
+function switchToolsTable() {
+    let type = document.getElementById("toolsWorkSelect").value;
+    let head = document.getElementById("toolsTableHead");
+    let tbody = document.querySelector("#toolsActionTable tbody");
+    let title = document.getElementById("toolsTableTitle");
+    tbody.innerHTML = "";
+
+    if (type === 'entry') {
+        title.innerText = "Stock Entry Logs Control Matrix";
+        head.innerHTML = "<th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Type</th><th>Status</th><th>Qty</th><th>Date</th><th>Remarks</th><th>Action</th>";
+        let sr = 1;
+        Object.keys(entryData).sort().forEach(key => {
+            let x = entryData[key];
+            let tr = document.createElement("tr");
+            tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.stockType || 'General Stock'}</strong></td><td><span class="status-badge ${x.qualityStatus === 'Faulty' ? 'status-party' : 'status-returned'}">${x.qualityStatus || 'Ok'}</span></td><td>${x.qty}</td><td>${x.date}</td><td>${x.remarks || ''}</td><td class="action-cell-skip"><button class="editBtn" onclick="openRowEditModal('store_entries','${key}')">✏️ Edit</button> <button class="deleteBtn" onclick="deleteRowSecurely('store_entries','${key}')">🗑️ Delete</button></td>`;
+            tbody.appendChild(tr);
+        });
+    } else if (type === 'rec') {
+        title.innerText = "Received Purchase Logs Control Matrix";
+        head.innerHTML = "<th>Sr.No</th><th>Item</th><th>Version</th><th>Qty</th><th>Bill No</th><th>Supplier</th><th>Date</th><th>Action</th>";
+        let sr = 1;
+        Object.keys(receivedData).sort().forEach(key => {
+            let x = receivedData[key];
+            let tr = document.createElement("tr");
+            tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td>${x.qty}</td><td>${x.billNumber || ''}</td><td>${x.supplierName || ''}</td><td>${x.date}</td><td class="action-cell-skip"><button class="editBtn" onclick="openRowEditModal('store_received','${key}')">✏️ Edit</button> <button class="deleteBtn" onclick="deleteRowSecurely('store_received','${key}')">🗑️ Delete</button></td>`;
+            tbody.appendChild(tr);
+        });
+    } else if (type === 'issue') {
+        title.innerText = "Outward Issued Dispatches Control Matrix";
+        head.innerHTML = "<th>Sr.No</th><th>Item</th><th>Version</th><th>Pool</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Date</th><th>Action</th>";
+        let sr = 1;
+        Object.keys(issueData).sort().forEach(key => {
+            let x = issueData[key];
+            let tr = document.createElement("tr");
+            tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td>${x.location || ''}</td><td><strong>${x.purpose || ''}</strong></td><td>${x.date}</td><td class="action-cell-skip"><button class="editBtn" onclick="openRowEditModal('store_issues','${key}')">✏️ Edit</button> <button class="deleteBtn" onclick="deleteRowSecurely('store_issues','${key}')">🗑️ Delete</button></td>`;
+            tbody.appendChild(tr);
+        });
+    } else if (type === 'return') {
+        title.innerText = "Inward Client Returns Control Matrix";
+        head.innerHTML = "<th>Sr.No</th><th>Item</th><th>Version</th><th>Pool</th><th>Qty</th><th>Person</th><th>Party</th><th>Purpose</th><th>Status</th><th>Date</th><th>Action</th>";
+        let sr = 1;
+        Object.keys(returnData).sort().forEach(key => {
+            let x = returnData[key];
+            let tr = document.createElement("tr");
+            tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td><strong>${x.purpose || ''}</strong></td><td><span class="status-badge ${x.status === 'Ok' ? 'status-returned' : 'status-party'}">${x.status}</span></td><td>${x.date}</td><td class="action-cell-skip"><button class="editBtn" onclick="openRowEditModal('store_returns','${key}')">✏️ Edit</button> <button class="deleteBtn" onclick="deleteRowSecurely('store_returns','${key}')">🗑️ Delete</button></td>`;
+            tbody.appendChild(tr);
+        });
+    }
 }
 
 function renderTables() {
@@ -1320,7 +1409,7 @@ function renderTables() {
             <td><span class="clickable-qty" onclick="showDeviceDetailsModal('Master Live Devices: ${item} (${version})', '${jsonStr}')">${liveDevices.length} Devs</span></td>
             <td class="action-cell-skip">
                 <button class="addBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openAddImeiModal('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">Add Missing IMEI</button>
-                <button class="editBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openEditMasterModal('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">Edit</button>
+                <button class="editBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openEditMasterModal('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">Global Edit</button>
             </td>
         `;
         repT.appendChild(tr);
@@ -1337,13 +1426,13 @@ function renderTables() {
             let devLink = `<span class="clickable-qty" onclick="showDeviceDetailsModal('Allocated Devices Breakdown', '${devJson}')">${(x.devices || []).length} Devices</span>`;
             
             if(type === 'entry') {
-                tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.stockType || 'General Stock'}</strong></td><td><span class="status-badge ${x.qualityStatus === 'Faulty' ? 'status-party' : 'status-returned'}">${x.qualityStatus || 'Ok'}</span></td><td>${x.qty}</td><td>${x.date}</td><td>${x.remarks || ''}</td><td>${devLink}</td><td class="action-cell-skip"><button class="editBtn" onclick="openRowEditModal('store_entries','${key}')">✏️</button> <button class="deleteBtn" onclick="deleteRowSecurely('store_entries','${key}')">🗑️</button></td>`;
+                tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><strong>${x.stockType || 'General Stock'}</strong></td><td><span class="status-badge ${x.qualityStatus === 'Faulty' ? 'status-party' : 'status-returned'}">${x.qualityStatus || 'Ok'}</span></td><td>${x.qty}</td><td>${x.date}</td><td>${x.remarks || ''}</td><td>${devLink}</td>`;
             } else if(type === 'rec') {
-                tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td>${x.qty}</td><td>${x.billNumber || ''}</td><td>${x.supplierName || ''}</td><td>${x.date}</td><td>${devLink}</td><td class="action-cell-skip"><button class="editBtn" onclick="openRowEditModal('store_received','${key}')">✏️</button> <button class="deleteBtn" onclick="deleteRowSecurely('store_received','${key}')">🗑️</button></td>`;
+                tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td>${x.qty}</td><td>${x.billNumber || ''}</td><td>${x.supplierName || ''}</td><td>${x.date}</td><td>${devLink}</td>`;
             } else if(type === 'issue') {
-                tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td>${x.location || ''}</td><td><strong>${x.purpose || ''}</strong></td><td>${x.remarks || ''}</td><td>${x.date}</td><td>${devLink}</td><td class="action-cell-skip"><button class="editBtn" onclick="openRowEditModal('store_issues','${key}')">✏️</button> <button class="deleteBtn" onclick="deleteRowSecurely('store_issues','${key}')">🗑️</button></td>`;
+                tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td>${x.location || ''}</td><td><strong>${x.purpose || ''}</strong></td><td>${x.remarks || ''}</td><td>${x.date}</td><td>${devLink}</td>`;
             } else if(type === 'return') {
-                tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td>${x.location || ''}</td><td><strong>${x.purpose || ''}</strong></td><td><span class="status-badge ${x.status === 'Ok' ? 'status-returned' : 'status-party'}">${x.status}</span></td><td>${x.date}</td><td>${devLink}</td><td class="action-cell-skip"><button class="editBtn" onclick="openRowEditModal('store_returns','${key}')">✏️</button> <button class="deleteBtn" onclick="deleteRowSecurely('store_returns','${key}')">🗑️</button></td>`;
+                tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td>${x.location || ''}</td><td><strong>${x.purpose || ''}</strong></td><td><span class="status-badge ${x.status === 'Ok' ? 'status-returned' : 'status-party'}">${x.status}</span></td><td>${x.date}</td><td>${devLink}</td>`;
             }
             tbody.appendChild(tr);
         });
@@ -1355,13 +1444,11 @@ function renderTables() {
     populateSubTable(returnData, "returnTable", "return");
 }
 
-// RENDER MASTER FAULTY TAB LOGS
 function renderFaultyTable() {
     let tbody = document.querySelector("#faultyMasterTable tbody");
     tbody.innerHTML = "";
     let sr = 1;
 
-    // Fetch faulty from Stock Entries
     Object.values(entryData).forEach(x => {
         if(x.qualityStatus === 'Faulty') {
             let tr = document.createElement("tr");
@@ -1372,7 +1459,6 @@ function renderFaultyTable() {
         }
     });
 
-    // Fetch faulty from Returns
     Object.values(returnData).forEach(x => {
         if(x.status === 'Faulty') {
             let tr = document.createElement("tr");
@@ -1403,75 +1489,71 @@ function submitGlobalItemEdit() {
 
     if(!newItem || !newVersion) { alert("Fields cannot be empty!"); return; }
 
-    requireSecurePassword(() => {
-        let updates = {};
-        const compileUpdates = (dataPool, nodeName) => {
-            Object.keys(dataPool).forEach(k => {
-                if(dataPool[k].item === oldItem && dataPool[k].version === oldVersion) {
-                    updates[`/${nodeName}/${k}/item`] = newItem;
-                    updates[`/${nodeName}/${k}/version`] = newVersion;
-                }
-            });
-        };
-        compileUpdates(entryData, "store_entries");
-        compileUpdates(receivedData, "store_received");
-        compileUpdates(issueData, "store_issues");
-        compileUpdates(returnData, "store_returns");
-
-        if(Object.keys(updates).length === 0) {
-            alert("No transactional matches recorded for this item scheme.");
-            closeEditMasterModal();
-            return;
-        }
-
-        db.ref().update(updates).then(() => {
-            alert("Global modification processed logs updated universally!");
-            closeEditMasterModal();
+    let updates = {};
+    const compileUpdates = (dataPool, nodeName) => {
+        Object.keys(dataPool).forEach(k => {
+            if(dataPool[k].item === oldItem && dataPool[k].version === oldVersion) {
+                updates[`/${nodeName}/${k}/item`] = newItem;
+                updates[`/${nodeName}/${k}/version`] = newVersion;
+            }
         });
+    };
+    compileUpdates(entryData, "store_entries");
+    compileUpdates(receivedData, "store_received");
+    compileUpdates(issueData, "store_issues");
+    compileUpdates(returnData, "store_returns");
+
+    if(Object.keys(updates).length === 0) {
+        alert("No transactional matches recorded for this item scheme.");
+        closeEditMasterModal();
+        return;
+    }
+
+    db.ref().update(updates).then(() => {
+        alert("Global modification processed logs updated universally!");
+        closeEditMasterModal();
     });
 }
 
 function openRowEditModal(node, key) {
-    requireSecurePassword(() => {
-        document.getElementById("editNodeHidden").value = node;
-        document.getElementById("editKeyHidden").value = key;
-        
-        let record = node === 'store_entries' ? entryData[key] : node === 'store_received' ? receivedData[key] : node === 'store_issues' ? issueData[key] : returnData[key];
-        if(!record) return;
+    document.getElementById("editNodeHidden").value = node;
+    document.getElementById("editKeyHidden").value = key;
+    
+    let record = node === 'store_entries' ? entryData[key] : node === 'store_received' ? receivedData[key] : node === 'store_issues' ? issueData[key] : returnData[key];
+    if(!record) return;
 
-        let body = document.getElementById("rowEditFormBody");
-        body.innerHTML = "";
+    let body = document.getElementById("rowEditFormBody");
+    body.innerHTML = "";
 
-        Object.keys(record).forEach(k => {
-            if(k === 'devices' || k === 'stockPool' || k === 'stockPoolSource' || k === 'stockPoolDestination') return;
-            let div = document.createElement("div");
-            div.innerHTML = `<label style='font-weight:bold;text-transform:capitalize;'>${k}:</label><br>
-                             <input type='text' id='editField_${k}' value='${record[k]}' style='width:90%; padding:4px;'>`;
-            body.appendChild(div);
-        });
-
-        let devBody = document.getElementById("rowEditDevicesBody");
-        devBody.innerHTML = "";
-        let devices = record.devices || [];
-        
-        if(devices.length === 0) {
-            devBody.innerHTML = "<p style='color:#777; font-style:italic;'>No explicit Serial/IMEIs attached to this row schema context.</p>";
-        } else {
-            devices.forEach((d, i) => {
-                let row = document.createElement("div");
-                row.className = "device-entry-row";
-                row.innerHTML = `
-                    <strong>#${i+1}</strong>
-                    <input type="text" class="edit-dev-serial" value="${d.serial || ''}" placeholder="Serial" style="width:28%">
-                    <input type="text" class="edit-dev-imei1" value="${d.imei1 || ''}" placeholder="IMEI 1" style="width:32%">
-                    <input type="text" class="edit-dev-imei2" value="${d.imei2 || ''}" placeholder="IMEI 2" style="width:32%">
-                `;
-                devBody.appendChild(row);
-            });
-        }
-
-        document.getElementById("globalRowEditModal").style.display = "block";
+    Object.keys(record).forEach(k => {
+        if(k === 'devices' || k === 'stockPool' || k === 'stockPoolSource' || k === 'stockPoolDestination') return;
+        let div = document.createElement("div");
+        div.innerHTML = `<label style='font-weight:bold;text-transform:capitalize;'>${k}:</label><br>
+                         <input type='text' id='editField_${k}' value='${record[k]}' style='width:90%; padding:4px;'>`;
+        body.appendChild(div);
     });
+
+    let devBody = document.getElementById("rowEditDevicesBody");
+    devBody.innerHTML = "";
+    let devices = record.devices || [];
+    
+    if(devices.length === 0) {
+        devBody.innerHTML = "<p style='color:#777; font-style:italic;'>No explicit Serial/IMEIs attached to this row schema context.</p>";
+    } else {
+        devices.forEach((d, i) => {
+            let row = document.createElement("div");
+            row.className = "device-entry-row";
+            row.innerHTML = `
+                <strong>#${i+1}</strong>
+                <input type="text" class="edit-dev-serial" value="${d.serial || ''}" placeholder="Serial" style="width:28%">
+                <input type="text" class="edit-dev-imei1" value="${d.imei1 || ''}" placeholder="IMEI 1" style="width:32%">
+                <input type="text" class="edit-dev-imei2" value="${d.imei2 || ''}" placeholder="IMEI 2" style="width:32%">
+            `;
+            devBody.appendChild(row);
+        });
+    }
+
+    document.getElementById("globalRowEditModal").style.display = "block";
 }
 
 function closeRowEditModal() {
