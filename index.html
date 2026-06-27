@@ -128,7 +128,7 @@
         <div id="toolsSection" class="section">
             <h2>🛠️ Admin Control Tools</h2>
             <div class="tools-config-box">
-                <label style="font-weight:bold; font-size:16px;">Kesh pe work karna hai select karein (Slide View):</label>
+                <label style="font-weight:bold; font-size:16px;">Select category to work on (Slide View):</label>
                 <select id="toolsWorkSelect" onchange="switchToolsTable()" style="padding:10px; font-weight:bold; width:250px; border:2px solid #002b5c;">
                     <option value="entry">Stock Entry Logs</option>
                     <option value="rec">Received / Purchase Logs</option>
@@ -943,7 +943,7 @@ function processExcelBulkStockEntry() {
                 
                 let duplicateMessage = checkDuplicateImeiOrSerial(rowDevices);
                 if(duplicateMessage) {
-                    globalDuplicateError = `Row ${i+2}: IMEI/Serial (${duplicateMessage}) pehle se stock me available hai!`;
+                    globalDuplicateError = `Row ${i+2}: IMEI/Serial (${duplicateMessage}) is already available in stock!`;
                     break;
                 }
             }
@@ -954,7 +954,7 @@ function processExcelBulkStockEntry() {
         }
 
         if(globalDuplicateError) {
-            alert(`⛔ Bulk Stock Import Aborted!\n${globalDuplicateError}\nKoi bhi record save nahi kiya gaya.`);
+            alert(`⛔ Bulk Stock Import Aborted!\n${globalDuplicateError}\nNo records were saved.`);
             return;
         }
 
@@ -1013,7 +1013,7 @@ function processExcelBulkReceived() {
 
                 let duplicateMessage = checkDuplicateImeiOrSerial(rowDevices);
                 if(duplicateMessage) {
-                    globalDuplicateError = `Row ${i+2}: Purchase File me IMEI/Serial (${duplicateMessage}) pehle se stock me available hai!`;
+                    globalDuplicateError = `Row ${i+2}: IMEI/Serial (${duplicateMessage}) in Purchase File is already available in stock!`;
                     break;
                 }
             }
@@ -1024,7 +1024,7 @@ function processExcelBulkReceived() {
         }
 
         if(globalDuplicateError) {
-            alert(`⛔ Bulk Received Import Aborted!\n${globalDuplicateError}\nPurchase records transfer cancel kar diya gaya hai.`);
+            alert(`⛔ Bulk Received Import Aborted!\n${globalDuplicateError}\nPurchase records transfer was cancelled.`);
             return;
         }
 
@@ -1252,7 +1252,7 @@ function submitNewImeiToStock() {
 
     let duplicateMessage = checkDuplicateImeiOrSerial(devices);
     if(duplicateMessage) {
-        alert(`⛔ Duplicate Verification Failed!\nYeh ${duplicateMessage} pehle se portal database me stored hai. Entry rejected.`);
+        alert(`⛔ Duplicate Verification Failed!\nThis ${duplicateMessage} is already stored in the portal database. Entry rejected.`);
         return; 
     }
 
@@ -1300,7 +1300,94 @@ function showDeviceDetailsModal(title, devicesJson) {
     document.getElementById("detailsModal").style.display = "block";
 }
 
-// REST OF THE JAVASCRIPT LOGIC KEPT EXACTLY UNTOUCHED
+// NEW EXPLICIT BREAKDOWN MODAL GENERATOR FOR STOCK COUNTERS
+function showStockCounterDetails(title, item, version, mode) {
+    document.getElementById("modalTitle").innerText = title + ` - Breakdown Details`;
+    let container = document.getElementById("modalBody");
+    container.innerHTML = "";
+
+    let matchedDevices = [];
+    let tableHTML = "<table><thead><tr><th>#</th><th>Date</th><th>Pool / Supplier / Party</th><th>Qty</th><th>Serial / IMEI Info</th></tr></thead><tbody>";
+    let sr = 1;
+
+    if (mode === 'entry') {
+        Object.values(entryData).forEach(x => {
+            if (x.item === item && x.version === version) {
+                let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+                tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>${x.stockType || 'General'} (${x.qualityStatus || 'Ok'})</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+            }
+        });
+    } else if (mode === 'rec') {
+        Object.values(receivedData).forEach(x => {
+            if (x.item === item && x.version === version) {
+                let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+                tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>Supplier: ${x.supplierName || '--'} (Bill: ${x.billNumber || '--'})</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+            }
+        });
+    } else if (mode === 'issue') {
+        Object.values(issueData).forEach(x => {
+            if (x.item === item && x.version === version) {
+                let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+                tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>Party: ${x.party || '--'} (Purpose: ${x.purpose || '--'})</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+            }
+        });
+    } else if (mode === 'return') {
+        Object.values(returnData).forEach(x => {
+            if (x.item === item && x.version === version && x.status === "Ok") {
+                let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+                tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>Party: ${x.party || '--'} (Pool: ${x.stockPool || '--'})</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+            }
+        });
+    } else if (mode === 'sale') {
+        Object.values(entryData).forEach(x => {
+            if (x.item === item && x.version === version && x.stockType === "For Sale" && (x.qualityStatus === "Ok" || !x.qualityStatus)) {
+                let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+                tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>Stock Entry Pool</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+            }
+        });
+        Object.values(returnData).forEach(x => {
+            if (x.item === item && x.version === version && x.stockPool === "For Sale" && x.status === "Ok") {
+                let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+                tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>Returned to Sale Pool (From: ${x.party || '--'})</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+            }
+        });
+    } else if (mode === 'demo') {
+        Object.values(entryData).forEach(x => {
+            if (x.item === item && x.version === version && x.stockType === "For Demo/Rent" && (x.qualityStatus === "Ok" || !x.qualityStatus)) {
+                let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+                tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>Stock Entry Pool</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+            }
+        });
+        Object.values(returnData).forEach(x => {
+            if (x.item === item && x.version === version && x.stockPool === "For Demo/Rent" && x.status === "Ok") {
+                let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+                tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>Returned to Demo Pool (From: ${x.party || '--'})</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+            }
+        });
+    } else if (mode === 'faulty') {
+        Object.values(entryData).forEach(x => {
+            if (x.item === item && x.version === version && x.qualityStatus === "Faulty") {
+                let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+                tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>Faulty Entry Log</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+            }
+        });
+        Object.values(returnData).forEach(x => {
+            if (x.item === item && x.version === version && x.status === "Faulty") {
+                let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+                tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>Returned Faulty (Party: ${x.party || '--'})</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+            }
+        });
+    }
+
+    tableHTML += "</tbody></table>";
+    if(sr === 1) {
+        container.innerHTML = "<p style='color:red; font-weight:bold; padding:10px;'>No logs recorded for this parameter breakdown!</p>";
+    } else {
+        container.innerHTML = tableHTML;
+    }
+    document.getElementById("detailsModal").style.display = "block";
+}
+
 function downloadCSV(tableId, filename) {
     let csv = [];
     let rows = document.querySelectorAll(`#${tableId} tr`);
@@ -1430,24 +1517,26 @@ function renderTables() {
         poolCol(entryData); poolCol(receivedData);
 
         let jsonStr = encodeURIComponent(JSON.stringify(liveDevices));
+        let safeItem = item.replace(/'/g, "\\'");
+        let safeVersion = version.replace(/'/g, "\\'");
 
         let tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${idx+1}</td>
             <td style="font-weight:bold; color:#002b5c;">${item}</td>
             <td>${version}</td>
-            <td>${seCount}</td>
-            <td>${recCount}</td>
-            <td>${issCount}</td>
-            <td>${retCount}</td>
+            <td><span class="clickable-qty" onclick="showStockCounterDetails('Stock Entry Pool','${safeItem}','${safeVersion}','entry')">${seCount}</span></td>
+            <td><span class="clickable-qty" onclick="showStockCounterDetails('Purchase Pool','${safeItem}','${safeVersion}','rec')">${recCount}</span></td>
+            <td><span class="clickable-qty" onclick="showStockCounterDetails('Issue Pool','${safeItem}','${safeVersion}','issue')">${issCount}</span></td>
+            <td><span class="clickable-qty" onclick="showStockCounterDetails('Return Pool','${safeItem}','${safeVersion}','return')">${retCount}</span></td>
             <td style="font-weight:bold; background:#e2f0d9;">${st.total}</td>
-            <td>${st.sale}</td>
-            <td>${st.demo}</td>
-            <td style="font-weight:bold; color:red; background:#fce4d6;">${st.faulty}</td>
+            <td><span class="clickable-qty" onclick="showStockCounterDetails('For Sale Pool','${safeItem}','${safeVersion}','sale')">${st.sale}</span></td>
+            <td><span class="clickable-qty" onclick="showStockCounterDetails('Demo/Rent Pool','${safeItem}','${safeVersion}','demo')">${st.demo}</span></td>
+            <td style="font-weight:bold; color:red; background:#fce4d6;"><span class="clickable-qty" style="color:red;" onclick="showStockCounterDetails('Faulty Pool','${safeItem}','${safeVersion}','faulty')">${st.faulty}</span></td>
             <td><span class="clickable-qty" onclick="showDeviceDetailsModal('Master Live Devices: ${item} (${version})', '${jsonStr}')">${liveDevices.length} Devs</span></td>
             <td class="action-cell-skip">
-                <button class="addBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openAddImeiModal('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">Add Missing IMEI</button>
-                <button class="editBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openEditMasterModal('${item.replace(/'/g, "\\'")}', '${version.replace(/'/g, "\\'")}')">Global Edit</button>
+                <button class="addBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openAddImeiModal('${safeItem}', '${safeVersion}')">Add Missing IMEI</button>
+                <button class="editBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openEditMasterModal('${safeItem}', '${safeVersion}')">Global Edit</button>
             </td>
         `;
         repT.appendChild(tr);
