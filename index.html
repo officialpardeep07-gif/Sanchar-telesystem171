@@ -64,6 +64,11 @@
         .tracking-link {color: #0066cc; text-decoration: underline; cursor: pointer;}
         .imei-mode-select {padding: 4px; font-weight: bold; margin: 4px; border: 1px solid #002b5c; border-radius: 4px;}
         .tools-config-box {background:#fff3cd; border:2px solid #ffeeba; padding:15px; border-radius:8px; margin-bottom:20px;}
+        
+        /* STYLE FOR THE NEW ADVANCED TOP SEARCH */
+        .universal-search-container {background:#eef7ff; padding:15px; border:2px solid #002b5c; border-radius:8px; margin-bottom:15px;}
+        .search-badge-avail {background:green; color:white; padding:4px 8px; border-radius:4px; font-weight:bold;}
+        .search-badge-notavail {background:red; color:white; padding:4px 8px; border-radius:4px; font-weight:bold;}
     </style>
 </head>
 <body>
@@ -113,6 +118,15 @@
     <header>POC STORE</header>
         
     <div class="container">
+        
+        <!-- NEW ADVANCED TOP SEARCH OPTION (UNIVERSAL TRACKER) -->
+        <div class="universal-search-container">
+            <strong style="color:#002b5c; font-size:16px;">🔍 Device Status Universal Tracker:</strong><br>
+            <input type="text" id="universalSearchBox" placeholder="Enter Date, Party Name, Serial No, or IMEI No..." style="width:70%; padding:10px; font-weight:bold; margin-top:5px; border:2px solid #002b5c;" onkeyup="executeUniversalSearch()">
+            <button onclick="clearUniversalSearch()" style="padding:10px; background:#6c757d; color:white; border:none; font-weight:bold; cursor:pointer;">Clear</button>
+            <div id="universalSearchOutput" style="margin-top:10px; display:none;"></div>
+        </div>
+
         <div class="menu">
             <button class="toolsBtn" onclick="handleToolsAccess()">🛠️ Tools</button>
             <button onclick="showSection('stockReport')">Stock Report</button>
@@ -1167,7 +1181,7 @@ function handleItemSelectionChange(itemId, versionId) {
     dl.innerHTML = "";
 
     if(window.globalVersionMap && window.globalVersionMap[itemVal]) {
-        window.globalVersionMap[itemVal].forEach(v => {
+        window.globalVersionMap[window.globalVersionMap].forEach(v => {
             let op = document.createElement("option");
             op.value = v;
             dl.appendChild(op);
@@ -2177,6 +2191,92 @@ function filterByDate(tableId, dateColIdx, fromId, toId) {
         if(toDate && cellDate > toDate) show = false;
         tr.style.display = show ? "" : "none";
     });
+}
+
+// NEW STANDALONE UNIVERSAL SEARCH ALGORITHM LOGIC
+function executeUniversalSearch() {
+    let q = document.getElementById("universalSearchBox").value.trim().toLowerCase();
+    let out = document.getElementById("universalSearchOutput");
+    if(!q) { out.style.display = "none"; return; }
+    out.style.display = "block";
+
+    let matchedItem = null, matchedVersion = null, deviceFound = null, isIssued = false, holdingParty = "";
+
+    // Search target across all logs
+    const scanDataset = (dataset, type) => {
+        Object.values(dataset).forEach(row => {
+            let rowParty = (row.party || row.supplierName || "").toLowerCase();
+            let rowDate = (row.date || "");
+            if(rowDate.includes("-")) {
+                let p = rowDate.split("-");
+                if(p[0].length === 4) rowDate = `${p[2]}-${p[1]}-${p[0]}`;
+            }
+
+            if(rowParty.includes(q) || rowDate.includes(q)) {
+                matchedItem = row.item; matchedVersion = row.version;
+            }
+
+            if(row.devices && Array.isArray(row.devices)) {
+                row.devices.forEach(d => {
+                    let s = (d.serial || "").toLowerCase();
+                    let i1 = (d.imei1 || "").toLowerCase();
+                    let i2 = (d.imei2 || "").toLowerCase();
+
+                    if((s && s === q) || (i1 && i1 === q) || (i2 && i2 === q)) {
+                        deviceFound = d; matchedItem = row.item; matchedVersion = row.version;
+                        if(type === 'ISSUE') { isIssued = true; holdingParty = row.party || "Unknown Party"; }
+                        if(type === 'RETURN' && row.status === 'Ok') { isIssued = false; }
+                    }
+                });
+            }
+        });
+    };
+
+    scanDataset(entryData, 'ENTRY');
+    scanDataset(receivedData, 'REC');
+    scanDataset(issueData, 'ISSUE');
+    scanDataset(returnData, 'RETURN');
+
+    if(!matchedItem) {
+        out.innerHTML = "<p style='color:red; font-weight:bold;'>❌ Matches not discovered across records databases!</p>";
+        return;
+    }
+
+    let statusHtml = "";
+    if(deviceFound) {
+        if(isIssued) {
+            statusHtml = `<span class="search-badge-notavail">NOT AVAILABLE (Issued to: ${holdingParty})</span>`;
+        } else {
+            statusHtml = `<span class="search-badge-avail">AVAILABLE IN STOCK</span>`;
+        }
+    } else {
+        statusHtml = `<span style='color:#555; font-weight:bold;'>Log Context Matched (General Query/Bulk Reference)</span>`;
+    }
+
+    let singleDeviceArr = deviceFound ? [deviceFound] : [];
+    let jsonStr = encodeURIComponent(JSON.stringify(singleDeviceArr));
+
+    out.innerHTML = `
+        <div style="background:white; padding:10px; border-radius:5px; border:1px solid #ccc;">
+            <p style="margin:5px 0;"><strong>Matched Device/Item:</strong> ${matchedItem} (${matchedVersion})</p>
+            <p style="margin:5px 0;"><strong>Current Status:</strong> ${statusHtml}</p>
+            <table style="margin-top:5px; font-size:12px; width:100%;">
+                <thead><tr><th>Target Device Name</th><th>Version Specs</th><th>Filtered Reference View</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td>${matchedItem}</td>
+                        <td>${matchedVersion}</td>
+                        <td><button class="detailsBtn" style="padding:2px 6px; font-size:11px;" onclick="showDeviceDetailsModal('Filtered Query Result Spec', '${jsonStr}')">View Target Info Only</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function clearUniversalSearch() {
+    document.getElementById("universalSearchBox").value = "";
+    document.getElementById("universalSearchOutput").style.display = "none";
 }
 </script>
 </body>
