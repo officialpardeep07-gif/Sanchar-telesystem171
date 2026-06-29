@@ -665,7 +665,7 @@ function toggleCredentialChange(showForm){
 }
 
 function resetCredentialForm(){
-    currentGeneratedOTP = null;
+    currentGeneratedOTP = Math.floor(100000 + Math.random() * 900000).toString();
     document.getElementById("otpRequestStep").style.display = "block";
     document.getElementById("otpVerifyStep").style.display = "none";
     document.getElementById("fieldsChangeStep").style.display = "none";
@@ -1306,7 +1306,6 @@ function showStockCounterDetails(title, item, version, mode) {
     let container = document.getElementById("modalBody");
     container.innerHTML = "";
 
-    let matchedDevices = [];
     let tableHTML = "<table><thead><tr><th>#</th><th>Date</th><th>Pool / Supplier / Party</th><th>Qty</th><th>Serial / IMEI Info</th></tr></thead><tbody>";
     let sr = 1;
 
@@ -1510,13 +1509,54 @@ function renderTables() {
         let issCount = Object.values(issueData).filter(x => x.item === item && x.version === version).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
         let retCount = Object.values(returnData).filter(x => x.item === item && x.version === version && x.status === "Ok").reduce((a,b)=>a+(parseInt(b.qty)||0),0);
 
-        let liveDevices = [];
+        // --- ENHANCED LIVE DEVICES LOGIC: REMOVE ISSUED & ADD RETURNED & REMOVE DUPLICATES ---
+        let rawInwardDevices = [];
         const poolCol = ds => Object.values(ds).forEach(x => {
-            if(x.item === item && x.version === version && x.devices) liveDevices = liveDevices.concat(x.devices);
+            if(x.item === item && x.version === version && x.devices) rawInwardDevices = rawInwardDevices.concat(x.devices);
         });
         poolCol(entryData); poolCol(receivedData);
 
-        let jsonStr = encodeURIComponent(JSON.stringify(liveDevices));
+        let issuedImeis = new Set();
+        Object.values(issueData).forEach(x => {
+            if(x.item === item && x.version === version && x.devices) {
+                x.devices.forEach(d => {
+                    if(d.imei1) issuedImeis.add(d.imei1.trim().toLowerCase());
+                    if(d.imei2) issuedImeis.add(d.imei2.trim().toLowerCase());
+                    if(d.serial) issuedImeis.add(d.serial.trim().toLowerCase());
+                });
+            }
+        });
+
+        Object.values(returnData).forEach(x => {
+            if(x.item === item && x.version === version && x.status === "Ok" && x.devices) {
+                x.devices.forEach(d => {
+                    if(d.imei1) issuedImeis.delete(d.imei1.trim().toLowerCase());
+                    if(d.imei2) issuedImeis.delete(d.imei2.trim().toLowerCase());
+                    if(d.serial) issuedImeis.delete(d.serial.trim().toLowerCase());
+                });
+            }
+        });
+
+        let filteredLiveDevices = [];
+        let uniqueTrackingKeys = new Set();
+
+        rawInwardDevices.forEach(d => {
+            let isIssued = false;
+            if(d.imei1 && issuedImeis.has(d.imei1.trim().toLowerCase())) isIssued = true;
+            if(d.imei2 && issuedImeis.has(d.imei2.trim().toLowerCase())) isIssued = true;
+            if(d.serial && issuedImeis.has(d.serial.trim().toLowerCase())) isIssued = true;
+
+            if(!isIssued) {
+                let trackKey = (d.serial || '') + "|" + (d.imei1 || '') + "|" + (d.imei2 || '');
+                trackKey = trackKey.trim().toLowerCase();
+                if(!uniqueTrackingKeys.has(trackKey)) {
+                    uniqueTrackingKeys.add(trackKey);
+                    filteredLiveDevices.push(d);
+                }
+            }
+        });
+
+        let jsonStr = encodeURIComponent(JSON.stringify(filteredLiveDevices));
         let safeItem = item.replace(/'/g, "\\'");
         let safeVersion = version.replace(/'/g, "\\'");
 
@@ -1533,7 +1573,7 @@ function renderTables() {
             <td><span class="clickable-qty" onclick="showStockCounterDetails('For Sale Pool','${safeItem}','${safeVersion}','sale')">${st.sale}</span></td>
             <td><span class="clickable-qty" onclick="showStockCounterDetails('Demo/Rent Pool','${safeItem}','${safeVersion}','demo')">${st.demo}</span></td>
             <td style="font-weight:bold; color:red; background:#fce4d6;"><span class="clickable-qty" style="color:red;" onclick="showStockCounterDetails('Faulty Pool','${safeItem}','${safeVersion}','faulty')">${st.faulty}</span></td>
-            <td><span class="clickable-qty" onclick="showDeviceDetailsModal('Master Live Devices: ${item} (${version})', '${jsonStr}')">${liveDevices.length} Devs</span></td>
+            <td><span class="clickable-qty" onclick="showDeviceDetailsModal('Master Live Devices: ${item} (${version})', '${jsonStr}')">${filteredLiveDevices.length} Devs</span></td>
             <td class="action-cell-skip">
                 <button class="addBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openAddImeiModal('${safeItem}', '${safeVersion}')">Add Missing IMEI</button>
                 <button class="editBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openEditMasterModal('${safeItem}', '${safeVersion}')">Global Edit</button>
@@ -1597,6 +1637,7 @@ function renderFaultyTable() {
     });
 }
 
+// REST OF THE PEHLE VALE FUNCTIONS WITHOUT ANY CHANGES
 function openEditMasterModal(item, version) {
     document.getElementById("oldItemNameHidden").value = item;
     document.getElementById("oldVersionHidden").value = version;
