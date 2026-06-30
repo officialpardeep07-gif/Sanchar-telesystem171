@@ -225,7 +225,7 @@
                 <div style="margin: 8px 0; background: #eef7ff; padding: 10px; border-radius: 5px; border: 1px dashed #0066cc; display: inline-block;">
                     <strong>OR Import Serial/IMEI from Excel/CSV:</strong> 
                     <input type="file" id="bulkExcelEntryInput" accept=".csv" onchange="importBulkImeisFromExcel('entryQty', 'entryImeiCheck', 'entryDevicesContainer', this)">
-                    <br><small style="color:#555;">Format: SerialNo, IMEI1, IMEI2 (First row can be headers)</small>
+                    <br><small style="color:#555;">Format: SerialNo, IMEI1, IMEI2, Remarks (First row can be headers)</small>
                 </div>
                 <div id="entryDevicesContainer" style="margin-top:10px"></div>
                 <button class="saveBtn" onclick="saveStockEntry()">Save Entry</button>
@@ -233,7 +233,7 @@
 
             <div style="background:#e8f4fd;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #b8daff">
                 <strong style="color:#004085; font-size:15px;">Bulk Stock Entry Import (Excel / CSV File):</strong><br>
-                <p style="margin:5px 0; font-size:12px; color:#333;">Excel Headers required in CSV: <strong>item, version, qty, date, remarks, stocktype, qualitystatus, serial, imei1, imei2</strong> (qualitystatus can be: Ok, Faulty)</p>
+                <p style="margin:5px 0; font-size:12px; color:#333;">Excel Headers required in CSV: <strong>item, version, qty, date, remarks, stocktype, qualitystatus, serial, imei1, imei2, deviceremarks</strong> (qualitystatus can be: Ok, Faulty)</p>
                 <input type="file" id="excelBulkStockEntryFile" accept=".csv" style="padding:5px;">
                 <button class="saveBtn" onclick="processExcelBulkStockEntry()" style="background:#0056b3; margin-left:10px;">Upload Bulk Entries</button>
             </div>
@@ -275,7 +275,7 @@
                 <div style="margin: 8px 0; background: #fff4ee; padding: 10px; border-radius: 5px; border: 1px dashed #cc6600; display: inline-block;">
                     <strong>OR Import Serial/IMEI from Excel/CSV:</strong> 
                     <input type="file" id="bulkExcelRecInput" accept=".csv" onchange="importBulkImeisFromExcel('recQty', 'recImeiCheck', 'recDevicesContainer', this)">
-                    <br><small style="color:#555;">Format: SerialNo, IMEI1, IMEI2 (First row can be headers)</small>
+                    <br><small style="color:#555;">Format: SerialNo, IMEI1, IMEI2, Remarks (First row can be headers)</small>
                 </div>
                 <div id="recDevicesContainer" style="margin-top:10px"></div>
                 <button class="saveBtn" onclick="saveReceived()">Save Received</button>
@@ -283,7 +283,7 @@
 
             <div style="background:#fff3cd;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #ffeeba">
                 <strong style="color:#856404; font-size:15px;">Bulk Purchase / Received Import (Excel / CSV File):</strong><br>
-                <p style="margin:5px 0; font-size:12px; color:#333;">Excel Headers required in CSV: <strong>item, version, qty, billnumber, suppliername, date, remarks, serial, imei1, imei2</strong></p>
+                <p style="margin:5px 0; font-size:12px; color:#333;">Excel Headers required in CSV: <strong>item, version, qty, billnumber, suppliername, date, remarks, serial, imei1, imei2, deviceremarks</strong></p>
                 <input type="file" id="excelBulkReceivedFile" accept=".csv" style="padding:5px;">
                 <button class="saveBtn" onclick="processExcelBulkReceived()" style="background:#b58100; margin-left:10px;">Upload Bulk Received</button>
             </div>
@@ -948,11 +948,12 @@ function processExcelBulkStockEntry() {
             if(!item || !version || qty <= 0 || !date) continue;
 
             let rowDevices = [];
-            if(r.serial || r.imei1 || r.imei2) {
+            if(r.serial || r.imei1 || r.imei2 || r.deviceremarks) {
                 rowDevices.push({
                     serial: r.serial || "",
                     imei1: r.imei1 || "",
-                    imei2: r.imei2 || ""
+                    imei2: r.imei2 || "",
+                    remarks: r.deviceremarks || ""
                 });
                 
                 let duplicateMessage = checkDuplicateImeiOrSerial(rowDevices);
@@ -1018,11 +1019,12 @@ function processExcelBulkReceived() {
             if(!item || !version || qty <= 0 || !date) continue;
 
             let rowDevices = [];
-            if(r.serial || r.imei1 || r.imei2) {
+            if(r.serial || r.imei1 || r.imei2 || r.deviceremarks) {
                 rowDevices.push({
                     serial: r.serial || "",
                     imei1: r.imei1 || "",
-                    imei2: r.imei2 || ""
+                    imei2: r.imei2 || "",
+                    remarks: r.deviceremarks || ""
                 });
 
                 let duplicateMessage = checkDuplicateImeiOrSerial(rowDevices);
@@ -1070,9 +1072,10 @@ function handleDeviceInputsTrigger(qtyId, checkId, containerId) {
         div.className = "device-entry-row";
         div.innerHTML = `
             <strong>#${i+1}</strong>
-            <input type="text" placeholder="Serial No" class="dev-serial" style="width:28%">
-            <input type="text" placeholder="IMEI 1" class="dev-imei1" style="width:32%">
-            <input type="text" placeholder="IMEI 2" class="dev-imei2" style="width:32%">
+            <input type="text" placeholder="Serial No" class="dev-serial" style="width:22%">
+            <input type="text" placeholder="IMEI 1" class="dev-imei1" style="width:25%">
+            <input type="text" placeholder="IMEI 2" class="dev-imei2" style="width:25%">
+            <input type="text" placeholder="Remarks" class="dev-remarks" style="width:22%">
         `;
         container.appendChild(div);
     }
@@ -1096,7 +1099,8 @@ function importBulkImeisFromExcel(qtyId, checkId, containerId, fileInput) {
             parsedDevices.push({
                 serial: parts[0] || "",
                 imei1: parts[1] || "",
-                imei2: parts[2] || ""
+                imei2: parts[2] || "",
+                remarks: parts[3] || ""
             });
         }
 
@@ -1116,9 +1120,10 @@ function importBulkImeisFromExcel(qtyId, checkId, containerId, fileInput) {
             div.className = "device-entry-row";
             div.innerHTML = `
                 <strong>#${idx+1}</strong>
-                <input type="text" placeholder="Serial No" class="dev-serial" value="${d.serial}" style="width:28%">
-                <input type="text" placeholder="IMEI 1" class="dev-imei1" value="${d.imei1}" style="width:32%">
-                <input type="text" placeholder="IMEI 2" class="dev-imei2" value="${d.imei2}" style="width:32%">
+                <input type="text" placeholder="Serial No" class="dev-serial" value="${d.serial}" style="width:22%">
+                <input type="text" placeholder="IMEI 1" class="dev-imei1" value="${d.imei1}" style="width:25%">
+                <input type="text" placeholder="IMEI 2" class="dev-imei2" value="${d.imei2}" style="width:25%">
+                <input type="text" placeholder="Remarks" class="dev-remarks" value="${d.remarks}" style="width:22%">
             `;
             container.appendChild(div);
         });
@@ -1138,8 +1143,9 @@ function collectDeviceDetails(containerId) {
         let s = rows[i].getElementsByClassName("dev-serial")[0]?.value.trim() || "";
         let i1 = rows[i].getElementsByClassName("dev-imei1")[0]?.value.trim() || "";
         let i2 = rows[i].getElementsByClassName("dev-imei2")[0]?.value.trim() || "";
-        if(s || i1 || i2) {
-            arr.push({ serial: s, imei1: i1, imei2: i2 });
+        let r = rows[i].getElementsByClassName("dev-remarks")[0]?.value.trim() || "";
+        if(s || i1 || i2 || r) {
+            arr.push({ serial: s, imei1: i1, imei2: i2, remarks: r });
         }
     }
     return arr;
@@ -1181,7 +1187,7 @@ function handleItemSelectionChange(itemId, versionId) {
     dl.innerHTML = "";
 
     if(window.globalVersionMap && window.globalVersionMap[itemVal]) {
-        window.globalVersionMap[window.globalVersionMap].forEach(v => {
+        window.globalVersionMap[itemVal].forEach(v => {
             let op = document.createElement("option");
             op.value = v;
             dl.appendChild(op);
@@ -1249,9 +1255,10 @@ function generateAddImeiInputs() {
         div.className = "device-entry-row";
         div.innerHTML = `
             <strong>#${i+1}</strong>
-            <input type="text" placeholder="Serial No" class="dev-serial" style="width:28%">
-            <input type="text" placeholder="IMEI 1" class="dev-imei1" style="width:32%">
-            <input type="text" placeholder="IMEI 2" class="dev-imei2" style="width:32%">
+            <input type="text" placeholder="Serial No" class="dev-serial" style="width:22%">
+            <input type="text" placeholder="IMEI 1" class="dev-imei1" style="width:25%">
+            <input type="text" placeholder="IMEI 2" class="dev-imei2" style="width:25%">
+            <input type="text" placeholder="Remarks" class="dev-remarks" style="width:22%">
         `;
         container.appendChild(div);
     }
@@ -1301,9 +1308,9 @@ function showDeviceDetailsModal(title, devicesJson) {
         if(!arr || arr.length === 0) {
             container.innerHTML = "<p style='color:red;font-weight:bold;'>No Serial/IMEI allocation tracking details mapped to this item row log!</p>";
         } else {
-            let t = "<table><thead><tr><th>#</th><th>Serial Number</th><th>IMEI 1</th><th>IMEI 2</th></tr></thead><tbody>";
+            let t = "<table><thead><tr><th>#</th><th>Serial Number</th><th>IMEI 1</th><th>IMEI 2</th><th>Remarks</th></tr></thead><tbody>";
             arr.forEach((d, idx) => {
-                t += `<tr><td>${idx+1}</td><td>${d.serial || '-'}</td><td>${d.imei1 || '-'}</td><td>${d.imei2 || '-'}</td></tr>`;
+                t += `<tr><td>${idx+1}</td><td>${d.serial || '-'}</td><td>${d.imei1 || '-'}</td><td>${d.imei2 || '-'}</td><td>${d.remarks || '-'}</td></tr>`;
             });
             t += "</tbody></table>";
             container.innerHTML = t;
@@ -1651,7 +1658,6 @@ function renderFaultyTable() {
     });
 }
 
-// REST OF THE PEHLE VALE FUNCTIONS WITHOUT ANY CHANGES
 function openEditMasterModal(item, version) {
     document.getElementById("oldItemNameHidden").value = item;
     document.getElementById("oldVersionHidden").value = version;
@@ -1727,9 +1733,10 @@ function openRowEditModal(node, key) {
             row.className = "device-entry-row";
             row.innerHTML = `
                 <strong>#${i+1}</strong>
-                <input type="text" class="edit-dev-serial" value="${d.serial || ''}" placeholder="Serial" style="width:28%">
-                <input type="text" class="edit-dev-imei1" value="${d.imei1 || ''}" placeholder="IMEI 1" style="width:32%">
-                <input type="text" class="edit-dev-imei2" value="${d.imei2 || ''}" placeholder="IMEI 2" style="width:32%">
+                <input type="text" class="edit-dev-serial" value="${d.serial || ''}" placeholder="Serial" style="width:22%">
+                <input type="text" class="edit-dev-imei1" value="${d.imei1 || ''}" placeholder="IMEI 1" style="width:25%">
+                <input type="text" class="edit-dev-imei2" value="${d.imei2 || ''}" placeholder="IMEI 2" style="width:25%">
+                <input type="text" class="edit-dev-remarks" value="${d.remarks || ''}" placeholder="Remarks" style="width:22%">
             `;
             devBody.appendChild(row);
         });
@@ -1766,8 +1773,9 @@ function submitRowDataEdit() {
         let s = devRows[i].getElementsByClassName("edit-dev-serial")[0].value.trim();
         let i1 = devRows[i].getElementsByClassName("edit-dev-imei1")[0].value.trim();
         let i2 = devRows[i].getElementsByClassName("edit-dev-imei2")[0].value.trim();
-        if(s || i1 || i2) {
-            updatedDevices.push({ serial: s, imei1: i1, imei2: i2 });
+        let r = devRows[i].getElementsByClassName("edit-dev-remarks")[0].value.trim();
+        if(s || i1 || i2 || r) {
+            updatedDevices.push({ serial: s, imei1: i1, imei2: i2, remarks: r });
         }
     }
 
@@ -1896,9 +1904,10 @@ function handleDynamicDeviceInputs(qtyInput, boxId) {
         div.style.margin = "3px 0";
         div.innerHTML = `
             <small>#${i+1}</small>
-            <input type="text" placeholder="Serial" class="dev-serial" style="width:28%; padding:3px;">
-            <input type="text" placeholder="IMEI 1" class="dev-imei1" style="width:32%; padding:3px;">
-            <input type="text" placeholder="IMEI 2" class="dev-imei2" style="width:32%; padding:3px;">
+            <input type="text" placeholder="Serial" class="dev-serial" style="width:22%; padding:3px;">
+            <input type="text" placeholder="IMEI 1" class="dev-imei1" style="width:25%; padding:3px;">
+            <input type="text" placeholder="IMEI 2" class="dev-imei2" style="width:25%; padding:3px;">
+            <input type="text" placeholder="Remarks" class="dev-remarks" style="width:22%; padding:3px;">
         `;
         box.appendChild(div);
     }
@@ -1933,6 +1942,20 @@ function toggleImeiModeSelect(selectEl, boxId, itemClass, versionClass) {
     }
 
     box.style.display = "block";
+    
+    // Add real-time Filter / Search input box inside live box view
+    let searchInp = document.createElement("input");
+    searchInp.type = "text";
+    searchInp.placeholder = "🔍 Search IMEI, Serial, or Remarks...";
+    searchInp.className = "live-imei-search-bar";
+    searchInp.style.width = "94%";
+    searchInp.style.padding = "6px";
+    searchInp.style.margin = "4px 0 8px 0";
+    searchInp.style.border = "2px solid #002b5c";
+    searchInp.style.fontWeight = "bold";
+    searchInp.onkeyup = function() { filterLiveImeisList(this, boxId); };
+    box.appendChild(searchInp);
+
     let liveAvailablePool = [];
 
     if(itemClass === 'iss-item') {
@@ -1948,7 +1971,12 @@ function toggleImeiModeSelect(selectEl, boxId, itemClass, versionClass) {
     }
 
     if(liveAvailablePool.length === 0) {
-        box.innerHTML = "<p style='color:red; font-size:12px; padding:5px;'>No trackable matching reference items found in master logs!</p>";
+        let pErr = document.createElement("p");
+        pErr.style.color = "red";
+        pErr.style.fontSize = "12px";
+        pErr.style.padding = "5px";
+        pErr.innerText = "No trackable matching reference items found in master logs!";
+        box.appendChild(pErr);
         return;
     }
 
@@ -1956,11 +1984,26 @@ function toggleImeiModeSelect(selectEl, boxId, itemClass, versionClass) {
         let label = document.createElement("label");
         label.className = "live-imei-item";
         label.innerHTML = `
-            <input type="checkbox" class="live-chkbx" data-serial="${d.serial||''}" data-imei1="${d.imei1||''}" data-imei2="${d.imei2||''}">
-            <span>S: <strong>${d.serial||'-'}</strong> | I1: ${d.imei1||'-'}</span>
+            <input type="checkbox" class="live-chkbx" data-serial="${d.serial||''}" data-imei1="${d.imei1||''}" data-imei2="${d.imei2||''}" data-remarks="${d.remarks||''}">
+            <span>S: <strong>${d.serial||'-'}</strong> | I1: ${d.imei1||'-'} ${d.remarks ? ' | <small style="color:blue;">R: ' + d.remarks + '</small>' : ''}</span>
         `;
         box.appendChild(label);
     });
+}
+
+function filterLiveImeisList(inputEl, boxId) {
+    let q = inputEl.value.toLowerCase().trim();
+    let box = document.getElementById(boxId);
+    let labels = box.getElementsByClassName("live-imei-item");
+    
+    for (let i = 0; i < labels.length; i++) {
+        let text = labels[i].innerText.toLowerCase();
+        if (text.includes(q)) {
+            labels[i].style.display = "flex";
+        } else {
+            labels[i].style.display = "none";
+        }
+    }
 }
 
 function refreshAllReturnRowsIMEI() {
@@ -2007,7 +2050,8 @@ function saveGlobalIssues() {
                 let s = entryRows[j].getElementsByClassName("dev-serial")[0]?.value.trim() || "";
                 let i1 = entryRows[j].getElementsByClassName("dev-imei1")[0]?.value.trim() || "";
                 let i2 = entryRows[j].getElementsByClassName("dev-imei2")[0]?.value.trim() || "";
-                if(s || i1 || i2) devices.push({ serial: s, imei1: i1, imei2: i2 });
+                let r = entryRows[j].getElementsByClassName("dev-remarks")[0]?.value.trim() || "";
+                if(s || i1 || i2 || r) devices.push({ serial: s, imei1: i1, imei2: i2, remarks: r });
             }
         } else {
             let chks = box.querySelectorAll(".live-chkbx:checked");
@@ -2015,7 +2059,8 @@ function saveGlobalIssues() {
                 devices.push({
                     serial: c.getAttribute("data-serial"),
                     imei1: c.getAttribute("data-imei1"),
-                    imei2: c.getAttribute("data-imei2")
+                    imei2: c.getAttribute("data-imei2"),
+                    remarks: c.getAttribute("data-remarks") || ""
                 });
             });
         }
@@ -2077,7 +2122,8 @@ function saveGlobalReturns() {
                 let s = entryRows[j].getElementsByClassName("dev-serial")[0]?.value.trim() || "";
                 let i1 = entryRows[j].getElementsByClassName("dev-imei1")[0]?.value.trim() || "";
                 let i2 = entryRows[j].getElementsByClassName("dev-imei2")[0]?.value.trim() || "";
-                if(s || i1 || i2) devices.push({ serial: s, imei1: i1, imei2: i2 });
+                let r = entryRows[j].getElementsByClassName("dev-remarks")[0]?.value.trim() || "";
+                if(s || i1 || i2 || r) devices.push({ serial: s, imei1: i1, imei2: i2, remarks: r });
             }
         } else {
             let chks = box.querySelectorAll(".live-chkbx:checked");
@@ -2085,7 +2131,8 @@ function saveGlobalReturns() {
                 devices.push({
                     serial: c.getAttribute("data-serial"),
                     imei1: c.getAttribute("data-imei1"),
-                    imei2: c.getAttribute("data-imei2")
+                    imei2: c.getAttribute("data-imei2"),
+                    remarks: c.getAttribute("data-remarks") || ""
                 });
             });
         }
@@ -2193,7 +2240,7 @@ function filterByDate(tableId, dateColIdx, fromId, toId) {
     });
 }
 
-// NEW STANDALONE UNIVERSAL SEARCH ALGORITHM LOGIC
+// NEW STANDALONE UNIVERSAL SEARCH ALGORITHM LOGIC (FULLY RESTORED)
 function executeUniversalSearch() {
     let q = document.getElementById("universalSearchBox").value.trim().toLowerCase();
     let out = document.getElementById("universalSearchOutput");
@@ -2221,11 +2268,12 @@ function executeUniversalSearch() {
                     let s = (d.serial || "").toLowerCase();
                     let i1 = (d.imei1 || "").toLowerCase();
                     let i2 = (d.imei2 || "").toLowerCase();
+                    let r = (d.remarks || "").toLowerCase();
 
-                    if((s && s === q) || (i1 && i1 === q) || (i2 && i2 === q)) {
+                    if((s && s === q) || (i1 && i1 === q) || (i2 && i2 === q) || (r && r.includes(q))) {
                         deviceFound = d; matchedItem = row.item; matchedVersion = row.version;
-                        if(type === 'ISSUE') { isIssued = true; holdingParty = row.party || "Unknown Party"; }
-                        if(type === 'RETURN' && row.status === 'Ok') { isIssued = false; }
+                        if(type === 'ISSUE') { isIssued = true; holdingParty = row.party; }
+                        if(type === 'RETURN' && row.status === 'Ok') { isIssued = false; holdingParty = "Stock Pool"; }
                     }
                 });
             }
@@ -2237,41 +2285,19 @@ function executeUniversalSearch() {
     scanDataset(issueData, 'ISSUE');
     scanDataset(returnData, 'RETURN');
 
-    if(!matchedItem) {
-        out.innerHTML = "<p style='color:red; font-weight:bold;'>❌ Matches not discovered across records databases!</p>";
-        return;
-    }
-
-    let statusHtml = "";
-    if(deviceFound) {
-        if(isIssued) {
-            statusHtml = `<span class="search-badge-notavail">NOT AVAILABLE (Issued to: ${holdingParty})</span>`;
+    if(deviceFound || matchedItem) {
+        let txt = `<strong>Item:</strong> ${matchedItem || 'Unknown'} | <strong>Version:</strong> ${matchedVersion || 'Unknown'}<br>`;
+        if(deviceFound) {
+            txt += `<strong>Serial:</strong> ${deviceFound.serial || '-'} | <strong>IMEI 1:</strong> ${deviceFound.imei1 || '-'} | <strong>IMEI 2:</strong> ${deviceFound.imei2 || '-'}<br>`;
+            txt += `<strong>Device Remarks:</strong> ${deviceFound.remarks || '-'}<br>`;
+            txt += `<strong>Current Status:</strong> ${isIssued ? '<span class="search-badge-notavail">Issued to ' + holdingParty + '</span>' : '<span class="search-badge-avail">Available in Stock</span>'}`;
         } else {
-            statusHtml = `<span class="search-badge-avail">AVAILABLE IN STOCK</span>`;
+            txt += `<em>Party name or date matches tracked activity records.</em>`;
         }
+        out.innerHTML = txt;
     } else {
-        statusHtml = `<span style='color:#555; font-weight:bold;'>Log Context Matched (General Query/Bulk Reference)</span>`;
+        out.innerHTML = `<span style="color:red; font-weight:bold;">No matching record found for "${q}"</span>`;
     }
-
-    let singleDeviceArr = deviceFound ? [deviceFound] : [];
-    let jsonStr = encodeURIComponent(JSON.stringify(singleDeviceArr));
-
-    out.innerHTML = `
-        <div style="background:white; padding:10px; border-radius:5px; border:1px solid #ccc;">
-            <p style="margin:5px 0;"><strong>Matched Device/Item:</strong> ${matchedItem} (${matchedVersion})</p>
-            <p style="margin:5px 0;"><strong>Current Status:</strong> ${statusHtml}</p>
-            <table style="margin-top:5px; font-size:12px; width:100%;">
-                <thead><tr><th>Target Device Name</th><th>Version Specs</th><th>Filtered Reference View</th></tr></thead>
-                <tbody>
-                    <tr>
-                        <td>${matchedItem}</td>
-                        <td>${matchedVersion}</td>
-                        <td><button class="detailsBtn" style="padding:2px 6px; font-size:11px;" onclick="showDeviceDetailsModal('Filtered Query Result Spec', '${jsonStr}')">View Target Info Only</button></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    `;
 }
 
 function clearUniversalSearch() {
