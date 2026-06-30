@@ -515,6 +515,13 @@
                 <label style="font-weight:bold;">Select Target Stock Entry to Attach IMEI:</label><br>
                 <select id="addImeiTargetEntrySelect" style="width:96%; padding:8px; font-weight:bold; margin-top:5px;"></select>
             </div>
+
+            <!-- DYNAMIC EXCEL BULK IMPORT ADDED HERE FOR MISSING IMEI -->
+            <div style="margin: 8px 0; background: #eef7ff; padding: 10px; border-radius: 5px; border: 1px dashed #0066cc;">
+                <strong>OR Import Serial/IMEI from Excel/CSV:</strong> 
+                <input type="file" id="bulkExcelMissingImeiInput" accept=".csv" onchange="importBulkImeisMissingImei(this)">
+                <br><small style="color:#555;">Format: SerialNo, IMEI1, IMEI2, Remarks (First row can be headers)</small>
+            </div>
             
             <div style="margin-bottom:10px;">
                 <label style="font-weight:bold;">Number of Devices to Add:</label><br>
@@ -1134,6 +1141,58 @@ function importBulkImeisFromExcel(qtyId, checkId, containerId, fileInput) {
     reader.readAsText(file);
 }
 
+// NEW FUNCTION TO IMPORT BULK IMEIS INSIDE ADD MISSING IMEI MODAL
+function importBulkImeisMissingImei(fileInput) {
+    if(fileInput.files.length === 0) return;
+    let file = fileInput.files[0];
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let lines = e.target.result.split(/\r?\n/);
+        let parsedDevices = [];
+        
+        for(let i=0; i<lines.length; i++) {
+            let line = lines[i].trim();
+            if(!line) continue;
+            let parts = line.split(",").map(p => p.replace(/^["']|["']$/g, '').trim());
+            if(parts[0].toLowerCase().includes("serial") || parts[1]?.toLowerCase().includes("imei")) {
+                continue; 
+            }
+            parsedDevices.push({
+                serial: parts[0] || "",
+                imei1: parts[1] || "",
+                imei2: parts[2] || "",
+                remarks: parts[3] || ""
+            });
+        }
+
+        if(parsedDevices.length === 0) {
+            alert("No device data parsed from file!");
+            return;
+        }
+
+        document.getElementById("addImeiQtyInput").value = parsedDevices.length;
+        let container = document.getElementById("addImeiDynamicContainer");
+        container.innerHTML = "";
+
+        parsedDevices.forEach((d, idx) => {
+            let div = document.createElement("div");
+            div.className = "device-entry-row";
+            div.innerHTML = `
+                <strong>#${idx+1}</strong>
+                <input type="text" placeholder="Serial No" class="dev-serial" value="${d.serial}" style="width:22%">
+                <input type="text" placeholder="IMEI 1" class="dev-imei1" value="${d.imei1}" style="width:25%">
+                <input type="text" placeholder="IMEI 2" class="dev-imei2" value="${d.imei2}" style="width:25%">
+                <input type="text" placeholder="Remarks" class="dev-remarks" value="${d.remarks}" style="width:22%">
+            `;
+            container.appendChild(div);
+        });
+
+        alert(`Loaded ${parsedDevices.length} devices details from Excel/CSV successfully.`);
+        fileInput.value = "";
+    };
+    reader.readAsText(file);
+}
+
 function collectDeviceDetails(containerId) {
     let arr = [];
     let container = document.getElementById(containerId);
@@ -1242,6 +1301,7 @@ function openAddImeiModal(item, version) {
 
     document.getElementById("addImeiQtyInput").value = "";
     document.getElementById("addImeiDynamicContainer").innerHTML = "";
+    document.getElementById("bulkExcelMissingImeiInput").value = "";
     document.getElementById("addImeiModal").style.display = "block";
 }
 
@@ -1298,6 +1358,7 @@ function closeAddImeiModal() {
     document.getElementById("addImeiModal").style.display = "none";
 }
 
+// MODIFIED TO INCLUDE DOWNLOAD BUTTON FOR ALL DEVICE DETAILS/IMEIs POPUP
 function showDeviceDetailsModal(title, devicesJson) {
     document.getElementById("modalTitle").innerText = title;
     let container = document.getElementById("modalBody");
@@ -1308,7 +1369,9 @@ function showDeviceDetailsModal(title, devicesJson) {
         if(!arr || arr.length === 0) {
             container.innerHTML = "<p style='color:red;font-weight:bold;'>No Serial/IMEI allocation tracking details mapped to this item row log!</p>";
         } else {
-            let t = "<table><thead><tr><th>#</th><th>Serial Number</th><th>IMEI 1</th><th>IMEI 2</th><th>Remarks</th></tr></thead><tbody>";
+            window.lastViewedDevicesPool = arr; // Save globally for easy single button download trigger
+            let t = "<button class='downloadBtn' style='margin-bottom:12px; background:#0066cc;' onclick='downloadViewedImeisCSV()'>⬇️ Download All IMEIs</button>";
+            t += "<table><thead><tr><th>#</th><th>Serial Number</th><th>IMEI 1</th><th>IMEI 2</th><th>Remarks</th></tr></thead><tbody>";
             arr.forEach((d, idx) => {
                 t += `<tr><td>${idx+1}</td><td>${d.serial || '-'}</td><td>${d.imei1 || '-'}</td><td>${d.imei2 || '-'}</td><td>${d.remarks || '-'}</td></tr>`;
             });
@@ -1319,6 +1382,23 @@ function showDeviceDetailsModal(title, devicesJson) {
         container.innerHTML = "<p>Error parsing records dynamic dataset</p>";
     }
     document.getElementById("detailsModal").style.display = "block";
+}
+
+// NEW FUNCTION TO DOWNLOAD CURRENT VISUALIZED IMEIs DIRECTLY
+function downloadViewedImeisCSV() {
+    if(!window.lastViewedDevicesPool || window.lastViewedDevicesPool.length === 0) return;
+    let csv = ["Serial Number,IMEI 1,IMEI 2,Remarks"];
+    window.lastViewedDevicesPool.forEach(d => {
+        csv.push(`"${d.serial||''}","${d.imei1||''}","${d.imei2||''}","${d.remarks||''}"`);
+    });
+    let csvFile = new Blob([csv.join("\n")], {type: "text/csv;charset=utf-8;"});
+    let downloadLink = document.createElement("a");
+    downloadLink.download = "Device_IMEI_Export.csv";
+    downloadLink.href = window.URL.createObjectURL(csvFile);
+    downloadLink.style.display = "none";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
 }
 
 // NEW EXPLICIT BREAKDOWN MODAL GENERATOR FOR STOCK COUNTERS
@@ -2212,97 +2292,12 @@ function renderSummaryTable() {
 function filterSummaryByPurpose() {
     let f = document.getElementById("summaryPurposeFilter").value;
     document.querySelectorAll(".summary-row-item").forEach(tr => {
-        if(f === 'ALL') { tr.style.display = ""; return; }
-        tr.style.display = (tr.getAttribute("data-purpose") === f) ? "" : "none";
-    });
-}
-
-function filterByDate(tableId, dateColIdx, fromId, toId) {
-    let fromVal = document.getElementById(fromId).value;
-    let toVal = document.getElementById(toId).value;
-    
-    let fromDate = fromVal ? new Date(fromVal) : null;
-    let toDate = toVal ? new Date(toVal) : null;
-    if(toDate) toDate.setHours(23,59,59,999);
-
-    document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
-        let td = tr.children[dateColIdx];
-        if(!td) return;
-        let cellText = td.innerText.trim();
-        let parts = cellText.split("-");
-        if(parts.length !== 3) { tr.style.display = ""; return; }
-        
-        let cellDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-        let show = true;
-        if(fromDate && cellDate < fromDate) show = false;
-        if(toDate && cellDate > toDate) show = false;
-        tr.style.display = show ? "" : "none";
-    });
-}
-
-// NEW STANDALONE UNIVERSAL SEARCH ALGORITHM LOGIC (FULLY RESTORED)
-function executeUniversalSearch() {
-    let q = document.getElementById("universalSearchBox").value.trim().toLowerCase();
-    let out = document.getElementById("universalSearchOutput");
-    if(!q) { out.style.display = "none"; return; }
-    out.style.display = "block";
-
-    let matchedItem = null, matchedVersion = null, deviceFound = null, isIssued = false, holdingParty = "";
-
-    // Search target across all logs
-    const scanDataset = (dataset, type) => {
-        Object.values(dataset).forEach(row => {
-            let rowParty = (row.party || row.supplierName || "").toLowerCase();
-            let rowDate = (row.date || "");
-            if(rowDate.includes("-")) {
-                let p = rowDate.split("-");
-                if(p[0].length === 4) rowDate = `${p[2]}-${p[1]}-${p[0]}`;
-            }
-
-            if(rowParty.includes(q) || rowDate.includes(q)) {
-                matchedItem = row.item; matchedVersion = row.version;
-            }
-
-            if(row.devices && Array.isArray(row.devices)) {
-                row.devices.forEach(d => {
-                    let s = (d.serial || "").toLowerCase();
-                    let i1 = (d.imei1 || "").toLowerCase();
-                    let i2 = (d.imei2 || "").toLowerCase();
-                    let r = (d.remarks || "").toLowerCase();
-
-                    if((s && s === q) || (i1 && i1 === q) || (i2 && i2 === q) || (r && r.includes(q))) {
-                        deviceFound = d; matchedItem = row.item; matchedVersion = row.version;
-                        if(type === 'ISSUE') { isIssued = true; holdingParty = row.party; }
-                        if(type === 'RETURN' && row.status === 'Ok') { isIssued = false; holdingParty = "Stock Pool"; }
-                    }
-                });
-            }
-        });
-    };
-
-    scanDataset(entryData, 'ENTRY');
-    scanDataset(receivedData, 'REC');
-    scanDataset(issueData, 'ISSUE');
-    scanDataset(returnData, 'RETURN');
-
-    if(deviceFound || matchedItem) {
-        let txt = `<strong>Item:</strong> ${matchedItem || 'Unknown'} | <strong>Version:</strong> ${matchedVersion || 'Unknown'}<br>`;
-        if(deviceFound) {
-            txt += `<strong>Serial:</strong> ${deviceFound.serial || '-'} | <strong>IMEI 1:</strong> ${deviceFound.imei1 || '-'} | <strong>IMEI 2:</strong> ${deviceFound.imei2 || '-'}<br>`;
-            txt += `<strong>Device Remarks:</strong> ${deviceFound.remarks || '-'}<br>`;
-            txt += `<strong>Current Status:</strong> ${isIssued ? '<span class="search-badge-notavail">Issued to ' + holdingParty + '</span>' : '<span class="search-badge-avail">Available in Stock</span>'}`;
+        if(f === "ALL" || tr.getAttribute("data-purpose") === f) {
+            tr.style.display = "";
         } else {
-            txt += `<em>Party name or date matches tracked activity records.</em>`;
+            tr.style.display = "none";
         }
-        out.innerHTML = txt;
-    } else {
-        out.innerHTML = `<span style="color:red; font-weight:bold;">No matching record found for "${q}"</span>`;
-    }
-}
-
-function clearUniversalSearch() {
-    document.getElementById("universalSearchBox").value = "";
-    document.getElementById("universalSearchOutput").style.display = "none";
+    });
 }
 </script>
 </body>
