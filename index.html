@@ -151,6 +151,7 @@
                     <option value="rec">Received / Purchase Logs</option>
                     <option value="issue">Issue Item Logs</option>
                     <option value="return">Return Item Logs</option>
+                    <option value="report">Stock Report Master Actions</option>
                 </select>
                 <input type="text" id="toolsSearchInput" placeholder="Search logs here..." onkeyup="searchTable(this, 'toolsActionTable')" style="padding:10px; width:200px; margin-left:15px; border:2px solid #002b5c; font-weight:bold;">
                 <button class="restoreBtn" onclick="restoreData()" style="padding:10px 15px; margin-left:15px;">Restore Deleted</button>
@@ -191,7 +192,6 @@
                         <th>Demo/Rent</th>
                         <th>Faulty</th>
                         <th>Live Devices</th>
-                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -775,6 +775,60 @@ function updateApp(){
     if(document.getElementById("returnRowsContainer").children.length === 0) {
         addReturnRow();
     }
+}
+
+// SINGLE SOURCE OF TRUTH: returns only devices that are truly available in stock right now
+// (inward via Entry/Received, MINUS whatever is currently Issued and not yet Returned-Ok).
+// Any device that is issued (and not returned) is excluded here, so it will only ever
+// be reflected as "Live Devices" once it genuinely comes back into stock.
+function getLiveAvailableDevices(item, version) {
+    let rawInwardDevices = [];
+    const poolCol = ds => Object.values(ds).forEach(x => {
+        if(x.item === item && x.version === version && x.devices) rawInwardDevices = rawInwardDevices.concat(x.devices);
+    });
+    poolCol(entryData); poolCol(receivedData);
+
+    let issuedImeis = new Set();
+    Object.values(issueData).forEach(x => {
+        if(x.item === item && x.version === version && x.devices) {
+            x.devices.forEach(d => {
+                if(d.imei1) issuedImeis.add(d.imei1.trim().toLowerCase());
+                if(d.imei2) issuedImeis.add(d.imei2.trim().toLowerCase());
+                if(d.serial) issuedImeis.add(d.serial.trim().toLowerCase());
+            });
+        }
+    });
+
+    Object.values(returnData).forEach(x => {
+        if(x.item === item && x.version === version && x.status === "Ok" && x.devices) {
+            x.devices.forEach(d => {
+                if(d.imei1) issuedImeis.delete(d.imei1.trim().toLowerCase());
+                if(d.imei2) issuedImeis.delete(d.imei2.trim().toLowerCase());
+                if(d.serial) issuedImeis.delete(d.serial.trim().toLowerCase());
+            });
+        }
+    });
+
+    let filteredLiveDevices = [];
+    let uniqueTrackingKeys = new Set();
+
+    rawInwardDevices.forEach(d => {
+        let isIssued = false;
+        if(d.imei1 && issuedImeis.has(d.imei1.trim().toLowerCase())) isIssued = true;
+        if(d.imei2 && issuedImeis.has(d.imei2.trim().toLowerCase())) isIssued = true;
+        if(d.serial && issuedImeis.has(d.serial.trim().toLowerCase())) isIssued = true;
+
+        if(!isIssued) {
+            let trackKey = (d.serial || '') + "|" + (d.imei1 || '') + "|" + (d.imei2 || '');
+            trackKey = trackKey.trim().toLowerCase();
+            if(!uniqueTrackingKeys.has(trackKey)) {
+                uniqueTrackingKeys.add(trackKey);
+                filteredLiveDevices.push(d);
+            }
+        }
+    });
+
+    return filteredLiveDevices;
 }
 
 function calculateStockPool() {
@@ -1652,6 +1706,40 @@ function switchToolsTable() {
             tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td><strong>${x.purpose || ''}</strong></td><td><span class="status-badge ${x.status === 'Ok' ? 'status-returned' : 'status-party'}">${x.status}</span></td><td>${x.date}</td><td class="action-cell-skip"><button class="editBtn" onclick="openRowEditModal('store_returns','${key}')">✏️ Edit</button> <button class="deleteBtn" onclick="deleteRowSecurely('store_returns','${key}')">🗑️ Delete</button></td>`;
             tbody.appendChild(tr);
         });
+    } else if (type === 'report') {
+        title.innerText = "Stock Report Master Item Actions";
+        head.innerHTML = "<th>Sr.No</th><th>Item</th><th>Version</th><th>Balance</th><th>Live Devices</th><th>Action</th>";
+
+        let masterSet = new Set();
+        const mapKeys = ds => Object.values(ds).forEach(x => { if(x.item && x.version) masterSet.add(x.item.trim() + "|||" + x.version.trim()) });
+        mapKeys(entryData); mapKeys(receivedData); mapKeys(issueData); mapKeys(returnData);
+
+        let masterArr = Array.from(masterSet).sort();
+        masterArr.forEach((mKey, idx) => {
+            let [item, version] = mKey.split("|||");
+            let st = globalCalculatedStock[mKey] || { total: 0, sale: 0, demo: 0, faulty: 0 };
+
+            let filteredLiveDevices = getLiveAvailableDevices(item, version);
+
+            let jsonStr = encodeURIComponent(JSON.stringify(filteredLiveDevices));
+            let safeItem = item.replace(/'/g, "\\'");
+            let safeVersion = version.replace(/'/g, "\\'");
+
+            let tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${idx+1}</td>
+                <td style="font-weight:bold; color:#002b5c;">${item}</td>
+                <td>${version}</td>
+                <td style="font-weight:bold; background:#e2f0d9;">${st.total}</td>
+                <td><span class="clickable-qty" onclick="showDeviceDetailsModal('Master Live Devices: ${item} (${version})', '${jsonStr}')">${filteredLiveDevices.length} Devs</span></td>
+                <td class="action-cell-skip">
+                    <button class="addBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openAddImeiModal('${safeItem}', '${safeVersion}')">Add Missing IMEI</button>
+                    <button class="editBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openEditMasterModal('${safeItem}', '${safeVersion}')">Global Edit</button>
+                    <button class="saveBtn" style="padding:4px 8px; font-size:12px; margin:0; background:#ffc107; color:black;" onclick="openAllocationModal('${safeItem}', '${safeVersion}', ${st.total})">Allocate Pool</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
     }
 }
 
@@ -1672,52 +1760,8 @@ function renderTables() {
         let issCount = Object.values(issueData).filter(x => x.item === item && x.version === version).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
         let retCount = Object.values(returnData).filter(x => x.item === item && x.version === version && x.status === "Ok").reduce((a,b)=>a+(parseInt(b.qty)||0),0);
 
-        // --- ENHANCED LIVE DEVICES LOGIC ---
-        let rawInwardDevices = [];
-        const poolCol = ds => Object.values(ds).forEach(x => {
-            if(x.item === item && x.version === version && x.devices) rawInwardDevices = rawInwardDevices.concat(x.devices);
-        });
-        poolCol(entryData); poolCol(receivedData);
-
-        let issuedImeis = new Set();
-        Object.values(issueData).forEach(x => {
-            if(x.item === item && x.version === version && x.devices) {
-                x.devices.forEach(d => {
-                    if(d.imei1) issuedImeis.add(d.imei1.trim().toLowerCase());
-                    if(d.imei2) issuedImeis.add(d.imei2.trim().toLowerCase());
-                    if(d.serial) issuedImeis.add(d.serial.trim().toLowerCase());
-                });
-            }
-        });
-
-        Object.values(returnData).forEach(x => {
-            if(x.item === item && x.version === version && x.status === "Ok" && x.devices) {
-                x.devices.forEach(d => {
-                    if(d.imei1) issuedImeis.delete(d.imei1.trim().toLowerCase());
-                    if(d.imei2) issuedImeis.delete(d.imei2.trim().toLowerCase());
-                    if(d.serial) issuedImeis.delete(d.serial.trim().toLowerCase());
-                });
-            }
-        });
-
-        let filteredLiveDevices = [];
-        let uniqueTrackingKeys = new Set();
-
-        rawInwardDevices.forEach(d => {
-            let isIssued = false;
-            if(d.imei1 && issuedImeis.has(d.imei1.trim().toLowerCase())) isIssued = true;
-            if(d.imei2 && issuedImeis.has(d.imei2.trim().toLowerCase())) isIssued = true;
-            if(d.serial && issuedImeis.has(d.serial.trim().toLowerCase())) isIssued = true;
-
-            if(!isIssued) {
-                let trackKey = (d.serial || '') + "|" + (d.imei1 || '') + "|" + (d.imei2 || '');
-                trackKey = trackKey.trim().toLowerCase();
-                if(!uniqueTrackingKeys.has(trackKey)) {
-                    uniqueTrackingKeys.add(trackKey);
-                    filteredLiveDevices.push(d);
-                }
-            }
-        });
+        // --- ENHANCED LIVE DEVICES LOGIC (single source of truth) ---
+        let filteredLiveDevices = getLiveAvailableDevices(item, version);
 
         let jsonStr = encodeURIComponent(JSON.stringify(filteredLiveDevices));
         let safeItem = item.replace(/'/g, "\\'");
@@ -1737,11 +1781,6 @@ function renderTables() {
             <td><span class="clickable-qty" onclick="showStockCounterDetails('Demo/Rent Pool','${safeItem}','${safeVersion}','demo')">${st.demo}</span></td>
             <td style="font-weight:bold; color:red; background:#fce4d6;"><span class="clickable-qty" style="color:red;" onclick="showStockCounterDetails('Faulty Pool','${safeItem}','${safeVersion}','faulty')">${st.faulty}</span></td>
             <td><span class="clickable-qty" onclick="showDeviceDetailsModal('Master Live Devices: ${item} (${version})', '${jsonStr}')">${filteredLiveDevices.length} Devs</span></td>
-            <td class="action-cell-skip">
-                <button class="addBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openAddImeiModal('${safeItem}', '${safeVersion}')">Add Missing IMEI</button>
-                <button class="editBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openEditMasterModal('${safeItem}', '${safeVersion}')">Global Edit</button>
-                <button class="saveBtn" style="padding:4px 8px; font-size:12px; margin:0; background:#ffc107; color:black;" onclick="openAllocationModal('${safeItem}', '${safeVersion}', ${st.total})">Allocate Pool</button>
-            </td>
         `;
         repT.appendChild(tr);
     });
@@ -2102,14 +2141,35 @@ function toggleImeiModeSelect(selectEl, boxId, itemClass, versionClass) {
     let liveAvailablePool = [];
 
     if(itemClass === 'iss-item') {
-        const fetchStock = ds => Object.values(ds).forEach(x => {
-            if(x.item === item && x.version === version && x.devices) liveAvailablePool = liveAvailablePool.concat(x.devices);
-        });
-        fetchStock(entryData); fetchStock(receivedData);
+        // Only devices that are genuinely available right now (excludes anything
+        // already issued and not yet returned) can be picked to issue.
+        liveAvailablePool = getLiveAvailableDevices(item, version);
     } else {
         let party = document.getElementById("returnParty").value.trim();
+        let issuedPool = [];
         Object.values(issueData).forEach(x => {
-            if(x.item === item && x.version === version && x.party === party && x.devices) liveAvailablePool = liveAvailablePool.concat(x.devices);
+            if(x.item === item && x.version === version && x.party === party && x.devices) issuedPool = issuedPool.concat(x.devices);
+        });
+
+        // Exclude devices from this party that have already been returned (Ok status),
+        // so a device already back in stock can't be selected to be returned again.
+        let alreadyReturnedKeys = new Set();
+        Object.values(returnData).forEach(x => {
+            if(x.item === item && x.version === version && x.party === party && x.status === "Ok" && x.devices) {
+                x.devices.forEach(d => {
+                    if(d.imei1) alreadyReturnedKeys.add(d.imei1.trim().toLowerCase());
+                    if(d.imei2) alreadyReturnedKeys.add(d.imei2.trim().toLowerCase());
+                    if(d.serial) alreadyReturnedKeys.add(d.serial.trim().toLowerCase());
+                });
+            }
+        });
+
+        liveAvailablePool = issuedPool.filter(d => {
+            let alreadyBack = false;
+            if(d.imei1 && alreadyReturnedKeys.has(d.imei1.trim().toLowerCase())) alreadyBack = true;
+            if(d.imei2 && alreadyReturnedKeys.has(d.imei2.trim().toLowerCase())) alreadyBack = true;
+            if(d.serial && alreadyReturnedKeys.has(d.serial.trim().toLowerCase())) alreadyBack = true;
+            return !alreadyBack;
         });
     }
 
@@ -2396,7 +2456,8 @@ function executeUniversalSearch() {
     let matchCount = 0;
     let tableHTML = "<table class='search-tbl-details'><thead><tr><th>Type</th><th>Item Details</th><th>Party/Supplier</th><th>Date</th><th>Current Status</th></tr></thead><tbody>";
 
-    // 1. Scan Live Devices Pool for Availability Status
+    // 1. Scan Live Devices Pool for Availability Status (single source of truth,
+    // same computation used by Stock Report's Live Devices column)
     let masterItems = new Set();
     const collectKeys = ds => Object.values(ds).forEach(x => { if(x.item && x.version) masterItems.add(x.item.trim() + "|||" + x.version.trim()) });
     collectKeys(entryData); collectKeys(receivedData);
@@ -2404,11 +2465,7 @@ function executeUniversalSearch() {
     let allLiveImeis = [];
     masterItems.forEach(mKey => {
         let [item, version] = mKey.split("|||");
-        let inwardDevs = [];
-        Object.values(entryData).forEach(x => { if(x.item === item && x.version === version && x.devices) inwardDevs = inwardDevs.concat(x.devices); });
-        Object.values(receivedData).forEach(x => { if(x.item === item && x.version === version && x.devices) inwardDevs = inwardDevs.concat(x.devices); });
-        
-        inwardDevs.forEach(d => {
+        getLiveAvailableDevices(item, version).forEach(d => {
             allLiveImeis.push({ item: item, version: version, dev: d });
         });
     });
@@ -2441,30 +2498,12 @@ function executeUniversalSearch() {
         }
     });
 
-    // Check availability inside warehouse
+    // Check availability inside warehouse (obj list is already pre-filtered to
+    // only truly available/live devices, so no need to re-check issued status here)
     allLiveImeis.forEach(obj => {
         if(matchDevice(obj.dev, q)) {
-            // check if currently issued
-            let activeIssued = false;
-            Object.values(issueData).forEach(iss => {
-                if(iss.item === obj.item && iss.version === obj.version && iss.devices) {
-                    iss.devices.forEach(id => {
-                        if(id.serial === obj.dev.serial || id.imei1 === obj.dev.imei1) activeIssued = true;
-                    });
-                }
-            });
-            Object.values(returnData).forEach(ret => {
-                if(ret.item === obj.item && ret.version === obj.version && ret.status === 'Ok' && ret.devices) {
-                    ret.devices.forEach(rd => {
-                        if(rd.serial === obj.dev.serial || rd.imei1 === obj.dev.imei1) activeIssued = false;
-                    });
-                }
-            });
-
-            if(!activeIssued) {
-                matchCount++;
-                tableHTML += `<tr><td>Warehouse Asset</td><td>${obj.item} (${obj.version})<br><small>S: ${obj.dev.serial||'-'} | I1: ${obj.dev.imei1||'-'}</small></td><td>In Stock</td><td>--</td><td><span class='search-badge-avail'>Available inside Store</span></td></tr>`;
-            }
+            matchCount++;
+            tableHTML += `<tr><td>Warehouse Asset</td><td>${obj.item} (${obj.version})<br><small>S: ${obj.dev.serial||'-'} | I1: ${obj.dev.imei1||'-'}</small></td><td>In Stock</td><td>--</td><td><span class='search-badge-avail'>Available inside Store</span></td></tr>`;
         }
     });
 
