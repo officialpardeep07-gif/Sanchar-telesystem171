@@ -1528,7 +1528,7 @@ function showStockCounterDetails(title, item, version, mode) {
 
     if (mode === 'entry') {
         Object.values(entryData).forEach(x => {
-            if (x.item === item && x.version === version) {
+            if (x.item === item && x.version === version && (x.qualityStatus === "Ok" || !x.qualityStatus)) {
                 let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
                 tableHTML += `<tr><td>${sr++}</td><td>${x.date}</td><td>${x.stockType || 'General'} (${x.qualityStatus || 'Ok'})</td><td>${x.qty}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
             }
@@ -1755,7 +1755,7 @@ function renderTables() {
         let [item, version] = mKey.split("|||");
         let st = globalCalculatedStock[mKey] || { total: 0, sale: 0, demo: 0, faulty: 0 };
         
-        let seCount = Object.values(entryData).filter(x => x.item === item && x.version === version).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
+        let seCount = Object.values(entryData).filter(x => x.item === item && x.version === version && (x.qualityStatus === "Ok" || !x.qualityStatus)).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
         let recCount = Object.values(receivedData).filter(x => x.item === item && x.version === version).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
         let issCount = Object.values(issueData).filter(x => x.item === item && x.version === version).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
         let retCount = Object.values(returnData).filter(x => x.item === item && x.version === version && x.status === "Ok").reduce((a,b)=>a+(parseInt(b.qty)||0),0);
