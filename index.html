@@ -468,6 +468,26 @@
         </div>
     </div>
 
+    <!-- NEW POOL ALLOCATION MODAL -->
+    <div id="allocationModal" class="modal">
+        <div class="modal-content" style="width: 40%; text-align: center;">
+            <span class="close" onclick="closeAllocationModal()">&times;</span>
+            <h3>📊 Balance Quantity Allocation</h3>
+            <p id="allocModalSubtitle" style="font-size:13px; color:#555; font-weight: bold;"></p>
+            <input type="hidden" id="allocItemHidden">
+            <input type="hidden" id="allocVersionHidden">
+            <div style="margin-bottom:12px; text-align: left; padding: 0 5%;">
+                <label style="font-weight:bold; display: block; margin-bottom: 5px;">Quantity for Sale:</label>
+                <input type="number" id="allocSaleInput" style="width:96%; padding:8px;" min="0" placeholder="0">
+            </div>
+            <div style="margin-bottom:18px; text-align: left; padding: 0 5%;">
+                <label style="font-weight:bold; display: block; margin-bottom: 5px;">Quantity for Demo/Rent:</label>
+                <input type="number" id="allocDemoInput" style="width:96%; padding:8px;" min="0" placeholder="0">
+            </div>
+            <button class="saveBtn" onclick="submitPoolAllocation()" style="width:90%; padding:10px; font-size: 15px;">Save Allocation</button>
+        </div>
+    </div>
+
     <div id="editMasterModal" class="modal">
         <div class="modal-content" style="width: 40%; text-align: center;">
             <span class="close" onclick="closeEditMasterModal()">&times;</span>
@@ -729,13 +749,14 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-let entryData={},receivedData={},issueData={},returnData={},deletedBackup={};
+let entryData={},receivedData={},issueData={},returnData={},deletedBackup={},allocationData={};
 
 db.ref("store_entries").on("value",s=>{entryData=s.val()||{};updateApp()});
 db.ref("store_received").on("value",s=>{receivedData=s.val()||{};updateApp()});
 db.ref("store_issues").on("value",s=>{issueData=s.val()||{};updateApp()});
 db.ref("store_returns").on("value",s=>{returnData=s.val()||{};updateApp()});
 db.ref("deleted_backup").on("value",s=>{deletedBackup=s.val()||{}});
+db.ref("store_allocations").on("value",s=>{allocationData=s.val()||{};updateApp()});
 
 function updateApp(){
     document.getElementById("syncStatus").innerText="● Cloud Sync Active";
@@ -783,8 +804,11 @@ function calculateStockPool() {
         let returnedToSalePool = Object.values(returnData).filter(x => x.item === n && x.version === v && x.stockPool === "For Sale" && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
         let returnedToDemoPool = Object.values(returnData).filter(x => x.item === n && x.version === v && x.stockPool === "For Demo/Rent" && x.status === "Ok").reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
 
-        let finalSale = entrySaleTotal - issuedFromSalePool + returnedToSalePool;
-        let finalDemo = entryDemoTotal - issuedFromDemoPool + returnedToDemoPool;
+        // Fetch manual split allocations from Balance
+        let manualAlloc = Object.values(allocationData).find(x => x.item === n && x.version === v) || { saleQty: 0, demoQty: 0 };
+
+        let finalSale = entrySaleTotal - issuedFromSalePool + returnedToSalePool + (parseInt(manualAlloc.saleQty) || 0);
+        let finalDemo = entryDemoTotal - issuedFromDemoPool + returnedToDemoPool + (parseInt(manualAlloc.demoQty) || 0);
         let bal = e + p - i + r;
 
         globalCalculatedStock[key] = {
@@ -1361,6 +1385,41 @@ function closeAddImeiModal() {
     document.getElementById("addImeiModal").style.display = "none";
 }
 
+// ALLOCATION MODAL FUNCTIONS
+function openAllocationModal(item, version, balance) {
+    document.getElementById("allocItemHidden").value = item;
+    document.getElementById("allocVersionHidden").value = version;
+    document.getElementById("allocModalSubtitle").innerText = `Item: ${item} | Version: ${version} | Total Balance: ${balance}`;
+    
+    let existing = Object.values(allocationData).find(x => x.item === item && x.version === version) || { saleQty: 0, demoQty: 0 };
+    document.getElementById("allocSaleInput").value = existing.saleQty || 0;
+    document.getElementById("allocDemoInput").value = existing.demoQty || 0;
+    
+    document.getElementById("allocationModal").style.display = "block";
+}
+
+function closeAllocationModal() {
+    document.getElementById("allocationModal").style.display = "none";
+}
+
+function submitPoolAllocation() {
+    let item = document.getElementById("allocItemHidden").value;
+    let version = document.getElementById("allocVersionHidden").value;
+    let saleQty = parseInt(document.getElementById("allocSaleInput").value) || 0;
+    let demoQty = parseInt(document.getElementById("allocDemoInput").value) || 0;
+
+    let key = Object.keys(allocationData).find(k => allocationData[k].item === item && allocationData[k].version === version);
+
+    if (key) {
+        db.ref("store_allocations/" + key).set({ item: item, version: version, saleQty: saleQty, demoQty: demoQty });
+    } else {
+        db.ref("store_allocations").push({ item: item, version: version, saleQty: saleQty, demoQty: demoQty });
+    }
+
+    alert("Pool Allocation Processed Successfully!");
+    closeAllocationModal();
+}
+
 // MODIFIED TO INCLUDE DOWNLOAD BUTTON FOR ALL DEVICE DETAILS/IMEIs POPUP
 function showDeviceDetailsModal(title, devicesJson) {
     document.getElementById("modalTitle").innerText = title;
@@ -1613,7 +1672,7 @@ function renderTables() {
         let issCount = Object.values(issueData).filter(x => x.item === item && x.version === version).reduce((a,b)=>a+(parseInt(b.qty)||0),0);
         let retCount = Object.values(returnData).filter(x => x.item === item && x.version === version && x.status === "Ok").reduce((a,b)=>a+(parseInt(b.qty)||0),0);
 
-        // --- ENHANCED LIVE DEVICES LOGIC: REMOVE ISSUED & ADD RETURNED & REMOVE DUPLICATES ---
+        // --- ENHANCED LIVE DEVICES LOGIC ---
         let rawInwardDevices = [];
         const poolCol = ds => Object.values(ds).forEach(x => {
             if(x.item === item && x.version === version && x.devices) rawInwardDevices = rawInwardDevices.concat(x.devices);
@@ -1681,6 +1740,7 @@ function renderTables() {
             <td class="action-cell-skip">
                 <button class="addBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openAddImeiModal('${safeItem}', '${safeVersion}')">Add Missing IMEI</button>
                 <button class="editBtn" style="padding:4px 8px; font-size:12px; margin:0;" onclick="openEditMasterModal('${safeItem}', '${safeVersion}')">Global Edit</button>
+                <button class="saveBtn" style="padding:4px 8px; font-size:12px; margin:0; background:#ffc107; color:black;" onclick="openAllocationModal('${safeItem}', '${safeVersion}', ${st.total})">Allocate Pool</button>
             </td>
         `;
         repT.appendChild(tr);
@@ -2174,16 +2234,16 @@ function saveGlobalReturns() {
     let person = document.getElementById("returnPerson").value.trim();
     let party = document.getElementById("returnParty").value.trim();
     let location = document.getElementById("returnLocation").value.trim();
-    let pSel = document.getElementById("returnPurpose").value;
-    let purpose = pSel === 'Self' ? document.getElementById("customReturnPurpose").value.trim() : pSel;
+    let rSel = document.getElementById("returnPurpose").value;
+    let purpose = rSel === 'Self' ? document.getElementById("customReturnPurpose").value.trim() : rSel;
     let status = document.getElementById("returnStatus").value;
     let date = document.getElementById("returnDate").value;
     let remarks = document.getElementById("returnRemarks").value.trim();
 
-    if(!party || !purpose || !date) { alert("Fill Mandatory Master Fields (Party, Purpose, Date)!"); return; }
+    if(!party || !purpose || !date) { alert("Fill Mandatory Return Master Fields (Party, Purpose, Date)!"); return; }
 
     let rows = document.getElementById("returnRowsContainer").getElementsByClassName("dynamic-item-row");
-    if(rows.length === 0) { alert("Add at least one item line log!"); return; }
+    if(rows.length === 0) { alert("Add at least one return item row log!"); return; }
 
     let logsToSave = [];
 
@@ -2226,11 +2286,11 @@ function saveGlobalReturns() {
         });
     }
 
-    if(logsToSave.length === 0) { alert("No valid return row specs recorded."); return; }
+    if(logsToSave.length === 0) { alert("No fully qualified return entry descriptions declared."); return; }
 
     logsToSave.forEach(log => db.ref("store_returns").push(log));
-    alert("Universal Client Inward Returns recorded universally!");
-
+    alert("Universal Client Return Records finalized & saved!");
+    
     document.getElementById("returnPerson").value = "";
     document.getElementById("returnParty").value = "";
     document.getElementById("returnLocation").value = "";
@@ -2247,156 +2307,179 @@ function renderSummaryTable() {
     tbody.innerHTML = "";
     let sr = 1;
 
-    let joined = [];
-    Object.values(issueData).forEach(x => { joined.push({ ...x, rowType: 'ISSUE' }); });
-    Object.values(returnData).forEach(x => { joined.push({ ...x, rowType: 'RETURN' }); });
+    let combined = [];
+    Object.values(issueData).forEach(x => combined.push({ type: 'ISSUE', data: x }));
+    Object.values(returnData).forEach(x => combined.push({ type: 'RETURN', data: x }));
 
-    joined.sort((a, b) => new Date(b.date) - new Date(a.date));
+    combined.sort((a,b) => new Date(b.data.date) - new Date(a.data.date));
 
-    joined.forEach(x => {
+    combined.forEach(obj => {
+        let x = obj.data;
+        let isIssue = obj.type === 'ISSUE';
+        
         let tr = document.createElement("tr");
+        tr.className = "summary-row-item";
         tr.setAttribute("data-purpose", x.purpose || "");
+
+        let badgeColor = isIssue ? 'status-party' : 'status-returned';
+        let badgeTxt = isIssue ? 'Dispatched' : `Returned (${x.status})`;
+        let trackingStatus = `<span class="status-badge ${badgeColor}">${badgeTxt}</span>`;
+
+        let devString = (x.devices || []).map(d => d.serial || d.imei1 || '-').join(", ");
+        if(devString.length > 40) devString = devString.substring(0, 38) + "...";
+
         let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
-        let devLink = `<span class="clickable-qty" onclick="showDeviceDetailsModal('Summary Devices Info Breakdown', '${devJson}')">${(x.devices || []).length} Devices</span>`;
-        let trackingStatus = x.rowType === 'ISSUE' ? `<span class="status-badge status-party">Issued out</span>` : `<span class="status-badge status-returned">Returned (${x.status})</span>`;
-        tr.innerHTML = `<td>${sr++}</td><td>${x.date}</td><td>${x.item}</td><td>${x.version}</td><td>${x.qty}</td><td>${x.party || '--'}</td><td><strong>${x.purpose || '--'}</strong></td><td>${devLink}</td><td>${trackingStatus}</td>`;
+        let devLink = `<span class="clickable-qty" onclick="showDeviceDetailsModal('Summary Track Device IMEIs', '${devJson}')">${(x.devices || []).length} Devs (${devString})</span>`;
+
+        tr.innerHTML = `
+            <td>${sr++}</td>
+            <td>${x.date}</td>
+            <td style="font-weight:bold; color:#002b5c;">${x.item}</td>
+            <td>${x.version}</td>
+            <td>${x.qty}</td>
+            <td>${x.party || '--'}</td>
+            <td><strong>${x.purpose || '--'}</strong></td>
+            <td>${devLink}</td>
+            <td>${trackingStatus}</td>
+        `;
         tbody.appendChild(tr);
     });
 }
 
 function filterSummaryByPurpose() {
-    let val = document.getElementById("summaryPurposeFilter").value;
-    document.querySelectorAll("#summaryTable tbody tr").forEach(tr => {
-        if(val === 'ALL') { tr.style.display = ""; return; }
-        tr.style.display = tr.getAttribute("data-purpose") === val ? "" : "none";
+    let filterVal = document.getElementById("summaryPurposeFilter").value;
+    document.querySelectorAll(".summary-row-item").forEach(tr => {
+        if(filterVal === 'ALL') {
+            tr.style.display = "";
+        } else {
+            let p = tr.getAttribute("data-purpose");
+            tr.style.display = (p === filterVal) ? "" : "none";
+        }
     });
 }
 
 function filterByDate(tableId, dateColIdx, fromId, toId) {
     let fromVal = document.getElementById(fromId).value;
     let toVal = document.getElementById(toId).value;
-    if(!fromVal || !toVal) return;
+    
+    let fromDate = fromVal ? new Date(fromVal) : null;
+    let toDate = toVal ? new Date(toVal) : null;
 
-    let dFrom = new Date(fromVal);
-    let dTo = new Date(toVal);
+    if(fromDate) fromDate.setHours(0,0,0,0);
+    if(toDate) toDate.setHours(23,59,59,999);
 
     document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
-        let td = tr.cells[dateColIdx];
+        let td = tr.children[dateColIdx];
         if(!td) return;
-        let dRow = new Date(td.innerText.trim());
-        if(dRow >= dFrom && dRow <= dTo) {
-            tr.style.display = "";
-        } else {
-            tr.style.display = "none";
-        }
+        let rowDateStr = td.innerText.trim();
+        if(!rowDateStr) return;
+        
+        let rowDate = new Date(rowDateStr);
+        rowDate.setHours(0,0,0,0);
+
+        let show = true;
+        if(fromDate && rowDate < fromDate) show = false;
+        if(toDate && rowDate > toDate) show = false;
+
+        tr.style.display = show ? "" : "none";
     });
 }
 
-// ADVANCED UNIVERSAL SEARCH ALGORITHM TO SHOW FULL DEVICE DETAILS UPON IMEI/SERIAL SCAN
 function executeUniversalSearch() {
     let q = document.getElementById("universalSearchBox").value.trim().toLowerCase();
     let out = document.getElementById("universalSearchOutput");
     
-    if(!q) {
-        out.style.display = "none";
-        out.innerHTML = "";
-        return;
-    }
-    
+    if(!q) { out.innerHTML = ""; out.style.display = "none"; return; }
     out.style.display = "block";
-    out.innerHTML = `<div style="font-weight:bold; color:#002b5c; margin-bottom:8px;">Analyzing system tracking logs...</div>`;
-    
-    let matches = [];
-    
-    const inspectDataset = (dataset, categoryName) => {
-        Object.keys(dataset).forEach(key => {
-            let record = dataset[key];
-            let foundMatch = false;
-            let matchingDeviceMeta = "";
-            
-            // Search inside nested serial and imei structures
-            if(record.devices && Array.isArray(record.devices)) {
-                record.devices.forEach(dev => {
-                    let s = (dev.serial || "").toLowerCase();
-                    let i1 = (dev.imei1 || "").toLowerCase();
-                    let i2 = (dev.imei2 || "").toLowerCase();
-                    
-                    if((s && s.includes(q)) || (i1 && i1.includes(q)) || (i2 && i2.includes(q))) {
-                        foundMatch = true;
-                        matchingDeviceMeta = `Matched Device Details -> Serial: ${dev.serial || '-'} | IMEI 1: ${dev.imei1 || '-'} | IMEI 2: ${dev.imei2 || '-'}`;
-                    }
-                });
-            }
-            
-            // Search metadata rules if text match on basic properties
-            let item = (record.item || "").toLowerCase();
-            let party = (record.party || record.supplierName || "").toLowerCase();
-            let date = (record.date || "").toLowerCase();
-            if(item.includes(q) || party.includes(q) || date.includes(q)) {
-                foundMatch = true;
-            }
-            
-            if(foundMatch) {
-                matches.push({
-                    category: categoryName,
-                    item: record.item,
-                    version: record.version,
-                    qty: record.qty,
-                    date: record.date,
-                    party: record.party || record.supplierName || "N/A",
-                    pool: record.stockType || record.stockPool || "General",
-                    extra: record.billNumber ? `Bill No: ${record.billNumber}` : (record.purpose ? `Purpose: ${record.purpose}` : `Status: ${record.qualityStatus || record.status || 'Ok'}`),
-                    deviceMeta: matchingDeviceMeta
-                });
-            }
+    out.innerHTML = "<h4>Live Tracking Status Matches:</h4>";
+
+    let matchCount = 0;
+    let tableHTML = "<table class='search-tbl-details'><thead><tr><th>Type</th><th>Item Details</th><th>Party/Supplier</th><th>Date</th><th>Current Status</th></tr></thead><tbody>";
+
+    // 1. Scan Live Devices Pool for Availability Status
+    let masterItems = new Set();
+    const collectKeys = ds => Object.values(ds).forEach(x => { if(x.item && x.version) masterItems.add(x.item.trim() + "|||" + x.version.trim()) });
+    collectKeys(entryData); collectKeys(receivedData);
+
+    let allLiveImeis = [];
+    masterItems.forEach(mKey => {
+        let [item, version] = mKey.split("|||");
+        let inwardDevs = [];
+        Object.values(entryData).forEach(x => { if(x.item === item && x.version === version && x.devices) inwardDevs = inwardDevs.concat(x.devices); });
+        Object.values(receivedData).forEach(x => { if(x.item === item && x.version === version && x.devices) inwardDevs = inwardDevs.concat(x.devices); });
+        
+        inwardDevs.forEach(d => {
+            allLiveImeis.push({ item: item, version: version, dev: d });
         });
-    };
-    
-    inspectDataset(entryData, "Stock Entry Logs");
-    inspectDataset(receivedData, "Purchase/Received Logs");
-    inspectDataset(issueData, "Issue / Dispatched Logs");
-    inspectDataset(returnData, "Inward Customer Returns");
-    
-    if(matches.length === 0) {
-        out.innerHTML = `<b style="color:red;">❌ No matching IMEI, Serial, or transactional text data strings found inside server records.</b>`;
-        return;
-    }
-    
-    let html = `<div style="max-height:300px; overflow-y:auto;"><table class="search-tbl-details">
-                <thead>
-                    <tr>
-                        <th>Category Log</th>
-                        <th>Item Description</th>
-                        <th>Qty</th>
-                        <th>Date</th>
-                        <th>Party / Source</th>
-                        <th>Pool Parameter</th>
-                        <th>Reference details</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-    
-    matches.forEach(m => {
-        html += `<tr>
-                    <td><strong>${m.category}</strong></td>
-                    <td>${m.item} <br><small>Ver: ${m.version}</small></td>
-                    <td><b>${m.qty}</b></td>
-                    <td>${m.date}</td>
-                    <td>${m.party}</td>
-                    <td>${m.pool}</td>
-                    <td>${m.extra} ${m.deviceMeta ? `<br><small style="color:blue; font-weight:bold;">${m.deviceMeta}</small>` : ''}</td>
-                 </tr>`;
     });
-    
-    html += `</tbody></table></div>`;
-    out.innerHTML = `<div style="font-weight:bold; color:green; margin-bottom:5px;">🎯 Found ${matches.length} matching logging record associations:</div>` + html;
+
+    // 2. Cross reference out matching issues
+    const matchDevice = (d, query) => {
+        if((d.serial && d.serial.toLowerCase().includes(query)) || 
+           (d.imei1 && d.imei1.toLowerCase().includes(query)) || 
+           (d.imei2 && d.imei2.toLowerCase().includes(query)) ||
+           (d.remarks && d.remarks.toLowerCase().includes(query))) return true;
+        return false;
+    };
+
+    // Filter out rows matching general parameters or serials
+    Object.values(issueData).forEach(x => {
+        let devMatch = false;
+        if(x.devices) x.devices.forEach(d => { if(matchDevice(d, q)) devMatch = true; });
+        if(x.party?.toLowerCase().includes(q) || x.date?.includes(q) || x.item?.toLowerCase().includes(q) || devMatch) {
+            matchCount++;
+            tableHTML += `<tr><td>Outward Dispatch</td><td>${x.item} (${x.version})</td><td>Party: ${x.party}</td><td>${x.date}</td><td><span class='search-badge-notavail'>Issued to Client</span></td></tr>`;
+        }
+    });
+
+    Object.values(returnData).forEach(x => {
+        let devMatch = false;
+        if(x.devices) x.devices.forEach(d => { if(matchDevice(d, q)) devMatch = true; });
+        if(x.party?.toLowerCase().includes(q) || x.date?.includes(q) || x.item?.toLowerCase().includes(q) || devMatch) {
+            matchCount++;
+            tableHTML += `<tr><td>Client Inward Return</td><td>${x.item} (${x.version})</td><td>Party: ${x.party}</td><td>${x.date}</td><td><span class='search-badge-avail'>Returned Stock (${x.status})</span></td></tr>`;
+        }
+    });
+
+    // Check availability inside warehouse
+    allLiveImeis.forEach(obj => {
+        if(matchDevice(obj.dev, q)) {
+            // check if currently issued
+            let activeIssued = false;
+            Object.values(issueData).forEach(iss => {
+                if(iss.item === obj.item && iss.version === obj.version && iss.devices) {
+                    iss.devices.forEach(id => {
+                        if(id.serial === obj.dev.serial || id.imei1 === obj.dev.imei1) activeIssued = true;
+                    });
+                }
+            });
+            Object.values(returnData).forEach(ret => {
+                if(ret.item === obj.item && ret.version === obj.version && ret.status === 'Ok' && ret.devices) {
+                    ret.devices.forEach(rd => {
+                        if(rd.serial === obj.dev.serial || rd.imei1 === obj.dev.imei1) activeIssued = false;
+                    });
+                }
+            });
+
+            if(!activeIssued) {
+                matchCount++;
+                tableHTML += `<tr><td>Warehouse Asset</td><td>${obj.item} (${obj.version})<br><small>S: ${obj.dev.serial||'-'} | I1: ${obj.dev.imei1||'-'}</small></td><td>In Stock</td><td>--</td><td><span class='search-badge-avail'>Available inside Store</span></td></tr>`;
+            }
+        }
+    });
+
+    tableHTML += "</tbody></table>";
+    if(matchCount === 0) {
+        out.innerHTML += "<p style='color:red; font-weight:bold;'>No tracking matches discovered across master network logs data parameters!</p>";
+    } else {
+        out.innerHTML += tableHTML;
+    }
 }
 
 function clearUniversalSearch() {
     document.getElementById("universalSearchBox").value = "";
-    let out = document.getElementById("universalSearchOutput");
-    out.style.display = "none";
-    out.innerHTML = "";
+    document.getElementById("universalSearchOutput").innerHTML = "";
+    document.getElementById("universalSearchOutput").style.display = "none";
 }
 </script>
 </body>
