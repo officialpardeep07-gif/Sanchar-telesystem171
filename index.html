@@ -119,7 +119,13 @@
 <div id="mainContent">
     <header>Sanchar Telesystems Limited</header>
     <header>POC STORE</header>
-        
+
+    <!-- TOP-RIGHT 3-DOT QUICK MENU (HOUSES TOOLS ACCESS) -->
+    <div id="topDotMenuBtn" onclick="toggleTopDotMenu(event)" title="Quick Menu" style="position:fixed; top:14px; right:14px; z-index:6000; background:#002b5c; color:#fff; width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:bold; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.35); line-height:1;">&#8942;</div>
+    <div id="topDotMenuDropdown" style="display:none; position:fixed; top:60px; right:14px; z-index:6000; background:#fff; border:2px solid #002b5c; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.25); min-width:170px; overflow:hidden;">
+        <button onclick="handleToolsAccess(); closeTopDotMenu();" style="width:100%; text-align:left; background:#ffc107; color:#000; border:none; padding:12px 15px; font-weight:bold; cursor:pointer; font-size:15px; border-radius:0;">🛠️ Tools</button>
+    </div>
+
     <div class="container">
         
         <!-- NEW ADVANCED TOP SEARCH OPTION (UNIVERSAL TRACKER) -->
@@ -131,7 +137,6 @@
         </div>
 
         <div class="menu">
-            <button class="toolsBtn" onclick="handleToolsAccess()">🛠️ Tools</button>
             <button onclick="showSection('stockReport')">Stock Report</button>
             <button onclick="showSection('stockEntry')">Stock Entry</button>
             <button onclick="showSection('received')">Received</button>
@@ -442,14 +447,16 @@
                 <thead>
                     <tr>
                         <th>Sr.No</th>
-                        <th>Date</th>
                         <th>Item Name</th>
                         <th>Version</th>
                         <th>Qty</th>
                         <th>Party Name</th>
                         <th>Purpose</th>
                         <th>Serial / IMEI Info</th>
+                        <th>Dispatch Date</th>
+                        <th>Return Date</th>
                         <th>Current Status (Tracking)</th>
+                        <th>Round-Trip Details</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -636,6 +643,22 @@ document.getElementById("securityPasswordInput").addEventListener("keyup", funct
 });
 
 // TOOLS ACCESS WITH AUTOMATIC RESET STATE
+function toggleTopDotMenu(evt) {
+    if(evt) evt.stopPropagation();
+    let dd = document.getElementById("topDotMenuDropdown");
+    dd.style.display = (dd.style.display === "block") ? "none" : "block";
+}
+function closeTopDotMenu() {
+    document.getElementById("topDotMenuDropdown").style.display = "none";
+}
+document.addEventListener("click", function(e) {
+    let dd = document.getElementById("topDotMenuDropdown");
+    let btn = document.getElementById("topDotMenuBtn");
+    if(dd && dd.style.display === "block" && !dd.contains(e.target) && e.target !== btn) {
+        dd.style.display = "none";
+    }
+});
+
 function handleToolsAccess() {
     if (isToolsAuthenticated) {
         showSection('toolsSection');
@@ -2362,48 +2385,189 @@ function saveGlobalReturns() {
     addReturnRow();
 }
 
+// Helper: normalize a text field for loose matching (trim + lowercase)
+function normText(v) { return (v || "").toString().trim().toLowerCase(); }
+
+// Helper: does device A share a non-empty IMEI1 / IMEI2 / Serial with device B?
+function devicesMatch(a, b) {
+    if(a.imei1 && b.imei1 && normText(a.imei1) === normText(b.imei1)) return true;
+    if(a.imei2 && b.imei2 && normText(a.imei2) === normText(b.imei2)) return true;
+    if(a.serial && b.serial && normText(a.serial) === normText(b.serial)) return true;
+    return false;
+}
+
+// Builds a merged, device-level Round-Trip dataset: matches every dispatched
+// (Issue) device to a returned device from the SAME PARTY carrying the SAME
+// IMEI/Serial, so a dispatch + its later return show up together instead of
+// as two disconnected rows.
+function buildRoundTripSummaryRows() {
+    // Flatten every returned device into an easy-to-search pool
+    let returnPool = [];
+    Object.values(returnData).forEach(rx => {
+        (rx.devices || []).forEach(d => {
+            returnPool.push({ device: d, date: rx.date, status: rx.status, party: rx.party, item: rx.item, version: rx.version, used: false });
+        });
+    });
+
+    let rows = [];
+
+    // ---- Pass 1: ISSUE (dispatch) entries, merged with their matching return(s) ----
+    Object.values(issueData).forEach(x => {
+        let devices = x.devices || [];
+
+        if(devices.length === 0) {
+            // Legacy / no-IMEI entry — nothing to match against, show as-is
+            rows.push({
+                sortDate: x.date, item: x.item, version: x.version, qty: x.qty, party: x.party, purpose: x.purpose,
+                devLabel: "0 Devs", devArr: [],
+                dispatchDate: x.date, returnDate: "--",
+                statusHtml: `<span class="status-badge status-party">Dispatched</span>`,
+                breakdown: []
+            });
+            return;
+        }
+
+        let breakdown = [];
+        let returnedCount = 0;
+        let returnDatesSeen = new Set();
+
+        devices.forEach(d => {
+            let match = returnPool.find(rp => !rp.used && devicesMatch(rp.device, d) && normText(rp.party) === normText(x.party));
+            if(match) {
+                match.used = true;
+                returnedCount++;
+                returnDatesSeen.add(match.date);
+                breakdown.push({ serial: d.serial, imei1: d.imei1, imei2: d.imei2, dispatchDate: x.date, returnDate: match.date, returnStatus: match.status });
+            } else {
+                breakdown.push({ serial: d.serial, imei1: d.imei1, imei2: d.imei2, dispatchDate: x.date, returnDate: null, returnStatus: null });
+            }
+        });
+
+        let devString = devices.map(d => d.serial || d.imei1 || '-').join(", ");
+        if(devString.length > 40) devString = devString.substring(0, 38) + "...";
+
+        let statusHtml, returnDateDisplay;
+        if(returnedCount === 0) {
+            statusHtml = `<span class="status-badge status-party">With Party (Not Returned)</span>`;
+            returnDateDisplay = "--";
+        } else if(returnedCount === devices.length) {
+            statusHtml = `<span class="status-badge status-returned">Fully Returned</span>`;
+            returnDateDisplay = Array.from(returnDatesSeen).join(", ");
+        } else {
+            statusHtml = `<span class="status-badge status-na">Partially Returned (${returnedCount}/${devices.length})</span>`;
+            returnDateDisplay = Array.from(returnDatesSeen).join(", ");
+        }
+
+        rows.push({
+            sortDate: x.date, item: x.item, version: x.version, qty: x.qty, party: x.party, purpose: x.purpose,
+            devLabel: `${devices.length} Devs (${devString})`, devArr: devices,
+            dispatchDate: x.date, returnDate: returnDateDisplay,
+            statusHtml: statusHtml,
+            breakdown: breakdown
+        });
+    });
+
+    // ---- Pass 2: leftover returned devices with NO matching dispatch found ----
+    // (e.g. purchase returns, or returns whose original dispatch isn't in this log)
+    let leftoverByEntry = {};
+    Object.entries(returnData).forEach(([key, rx]) => {
+        (rx.devices || []).forEach(d => {
+            let poolEntry = returnPool.find(rp => rp.device === d);
+            if(poolEntry && !poolEntry.used) {
+                leftoverByEntry[key] = leftoverByEntry[key] || { rx, devs: [] };
+                leftoverByEntry[key].devs.push(d);
+            }
+        });
+    });
+
+    Object.values(leftoverByEntry).forEach(entry => {
+        let rx = entry.rx, devices = entry.devs;
+        let devString = devices.map(d => d.serial || d.imei1 || '-').join(", ");
+        if(devString.length > 40) devString = devString.substring(0, 38) + "...";
+        rows.push({
+            sortDate: rx.date, item: rx.item, version: rx.version, qty: devices.length, party: rx.party, purpose: rx.purpose,
+            devLabel: `${devices.length} Devs (${devString})`, devArr: devices,
+            dispatchDate: "--", returnDate: rx.date,
+            statusHtml: `<span class="status-badge status-returned">Returned (${rx.status}) — No Matching Dispatch Found</span>`,
+            breakdown: devices.map(d => ({ serial: d.serial, imei1: d.imei1, imei2: d.imei2, dispatchDate: null, returnDate: rx.date, returnStatus: rx.status }))
+        });
+    });
+
+    rows.sort((a,b) => new Date(b.sortDate) - new Date(a.sortDate));
+    return rows;
+}
+
 function renderSummaryTable() {
     let tbody = document.querySelector("#summaryTable tbody");
     tbody.innerHTML = "";
     let sr = 1;
 
-    let combined = [];
-    Object.values(issueData).forEach(x => combined.push({ type: 'ISSUE', data: x }));
-    Object.values(returnData).forEach(x => combined.push({ type: 'RETURN', data: x }));
+    let rows = buildRoundTripSummaryRows();
 
-    combined.sort((a,b) => new Date(b.data.date) - new Date(a.data.date));
-
-    combined.forEach(obj => {
-        let x = obj.data;
-        let isIssue = obj.type === 'ISSUE';
-        
+    rows.forEach(row => {
         let tr = document.createElement("tr");
         tr.className = "summary-row-item";
-        tr.setAttribute("data-purpose", x.purpose || "");
+        tr.setAttribute("data-purpose", row.purpose || "");
 
-        let badgeColor = isIssue ? 'status-party' : 'status-returned';
-        let badgeTxt = isIssue ? 'Dispatched' : `Returned (${x.status})`;
-        let trackingStatus = `<span class="status-badge ${badgeColor}">${badgeTxt}</span>`;
+        let devJson = encodeURIComponent(JSON.stringify(row.devArr || []));
+        let devLink = `<span class="clickable-qty" onclick="showDeviceDetailsModal('Summary Track Device IMEIs', '${devJson}')">${row.devLabel}</span>`;
 
-        let devString = (x.devices || []).map(d => d.serial || d.imei1 || '-').join(", ");
-        if(devString.length > 40) devString = devString.substring(0, 38) + "...";
-
-        let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
-        let devLink = `<span class="clickable-qty" onclick="showDeviceDetailsModal('Summary Track Device IMEIs', '${devJson}')">${(x.devices || []).length} Devs (${devString})</span>`;
+        let breakdownJson = encodeURIComponent(JSON.stringify(row.breakdown || []));
+        let detailsLink = row.breakdown.length
+            ? `<span class="clickable-qty" onclick="showRoundTripDetailsModal('${(row.item||'').replace(/'/g,"")}', '${breakdownJson}')">🔍 View Dispatch ↔ Return</span>`
+            : `--`;
 
         tr.innerHTML = `
             <td>${sr++}</td>
-            <td>${x.date}</td>
-            <td style="font-weight:bold; color:#002b5c;">${x.item}</td>
-            <td>${x.version}</td>
-            <td>${x.qty}</td>
-            <td>${x.party || '--'}</td>
-            <td><strong>${x.purpose || '--'}</strong></td>
+            <td style="font-weight:bold; color:#002b5c;">${row.item}</td>
+            <td>${row.version}</td>
+            <td>${row.qty}</td>
+            <td>${row.party || '--'}</td>
+            <td><strong>${row.purpose || '--'}</strong></td>
             <td>${devLink}</td>
-            <td>${trackingStatus}</td>
+            <td>${row.dispatchDate}</td>
+            <td>${row.returnDate}</td>
+            <td>${row.statusHtml}</td>
+            <td>${detailsLink}</td>
         `;
         tbody.appendChild(tr);
     });
+}
+
+// Shows a single, combined view of each device's dispatch date + return date
+// side-by-side, so the full round-trip is visible in one place.
+function showRoundTripDetailsModal(itemName, breakdownJson) {
+    document.getElementById("modalTitle").innerText = `Dispatch ↔ Return Details — ${itemName}`;
+    let container = document.getElementById("modalBody");
+    container.innerHTML = "";
+
+    try {
+        let arr = JSON.parse(decodeURIComponent(breakdownJson));
+        if(!arr || arr.length === 0) {
+            container.innerHTML = "<p style='color:red;font-weight:bold;'>No device-level tracking details available for this entry!</p>";
+            document.getElementById("detailsModal").style.display = "block";
+            return;
+        }
+        let t = "<table><thead><tr><th>#</th><th>Serial Number</th><th>IMEI 1</th><th>IMEI 2</th><th>Dispatch Date</th><th>Return Date</th><th>Status</th></tr></thead><tbody>";
+        arr.forEach((d, idx) => {
+            let statusTxt = d.returnDate ? `Returned (${d.returnStatus || 'OK'})` : (d.dispatchDate ? 'With Party' : 'Return Only');
+            let statusColor = d.returnDate ? '#28a745' : (d.dispatchDate ? '#dc3545' : '#6c757d');
+            t += `<tr>
+                <td>${idx+1}</td>
+                <td>${d.serial || '-'}</td>
+                <td>${d.imei1 || '-'}</td>
+                <td>${d.imei2 || '-'}</td>
+                <td>${d.dispatchDate || '--'}</td>
+                <td>${d.returnDate || '--'}</td>
+                <td><span style="color:${statusColor}; font-weight:bold;">${statusTxt}</span></td>
+            </tr>`;
+        });
+        t += "</tbody></table>";
+        container.innerHTML = t;
+    } catch(err) {
+        container.innerHTML = "<p>Error parsing round-trip tracking details</p>";
+    }
+    document.getElementById("detailsModal").style.display = "block";
 }
 
 function filterSummaryByPurpose() {
