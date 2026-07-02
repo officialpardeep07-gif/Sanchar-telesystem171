@@ -72,11 +72,65 @@
         .search-tbl-details {width:100%; border-collapse:collapse; margin-top:8px;}
         .search-tbl-details th, .search-tbl-details td {border:1px solid #002b5c; padding:6px; font-size:13px;}
         .search-tbl-details th {background:#e6f0fa; color:#002b5c;}
+
+        /* ================= NIGHT MODE ================= */
+        .night-toggle-btn{background:#2c3e50;color:#fff;border:none;padding:10px 15px;border-radius:5px;cursor:pointer;font-weight:bold;}
+        body.dark-mode{background:#121212;color:#e8e8e8;}
+        body.dark-mode #loginPage{background:#121212;}
+        body.dark-mode .login-header{color:#eaf2fb;}
+        body.dark-mode .loginBox{background:#1e1e1e;color:#e8e8e8;box-shadow:0 0 15px rgba(0,0,0,0.7);}
+        body.dark-mode .loginBox h2{color:#eaf2fb;}
+        body.dark-mode #error{color:#ff6b6b;}
+        body.dark-mode .settings-link{color:#6db3ff;}
+        body.dark-mode #selectionPage{background:#121212;}
+        body.dark-mode .store-card{background:#1e1e1e;border-color:#3f7cc0;}
+        body.dark-mode .store-title{color:#eaf2fb;}
+        body.dark-mode header{background:#001830;color:#eaf2fb;}
+        body.dark-mode .menu button{background:#0d2847;color:#eaf2fb;}
+        body.dark-mode .menu button.toolsBtn{background:#8a6d00;color:#fff;}
+        body.dark-mode .section{background:#1a1a1a;color:#e8e8e8;box-shadow:0 0 10px rgba(0,0,0,0.7);}
+        body.dark-mode h2, body.dark-mode h3, body.dark-mode h4, body.dark-mode strong, body.dark-mode label{color:#eaf2fb;}
+        body.dark-mode input, body.dark-mode select, body.dark-mode button{background:#2a2a2a;color:#e8e8e8;border:1px solid #444;}
+        body.dark-mode input::placeholder{color:#999;}
+        body.dark-mode .saveBtn{background:#1f7a1f;color:#fff;}
+        body.dark-mode .deleteBtn{background:#a52121;color:#fff;}
+        body.dark-mode .downloadBtn{background:#0053a6;color:#fff;}
+        body.dark-mode .restoreBtn{background:#c46f00;color:#fff;}
+        body.dark-mode .detailsBtn{background:#0f7c8c;color:#fff;}
+        body.dark-mode .editBtn{background:#c99a00;color:#000;}
+        body.dark-mode .addBtn{background:#0f7c8c;color:#fff;}
+        body.dark-mode table{color:#e8e8e8;}
+        body.dark-mode table, body.dark-mode th, body.dark-mode td{border-color:#3a3a3a;}
+        body.dark-mode th{background:#0d2847;color:#eaf2fb;}
+        body.dark-mode td{background:#1e1e1e;}
+        body.dark-mode .footer{background:#001830;color:#e8e8e8;}
+        body.dark-mode .header-actions{color:#e8e8e8;}
+        body.dark-mode .filter-group{background:#242424;}
+        body.dark-mode .modal-content{background-color:#1e1e1e;color:#e8e8e8;border-color:#444;}
+        body.dark-mode .close{color:#aaa;}
+        body.dark-mode .close:hover{color:#fff;}
+        body.dark-mode .device-entry-row{background:#242424;border-color:#444;}
+        body.dark-mode .dynamic-item-row{background:#242424;border-color:#444;}
+        body.dark-mode .settings-link, body.dark-mode .tracking-link, body.dark-mode .clickable-qty{color:#6db3ff;}
+        body.dark-mode .live-imei-box{background:#242424;border-color:#444;}
+        body.dark-mode .live-imei-item{border-color:#3a3a3a;}
+        body.dark-mode .imei-toggle-wrap{color:#eaf2fb;}
+        body.dark-mode .tools-config-box{background:#3a3319;border-color:#5c531f;color:#f0e6c0;}
+        body.dark-mode .universal-search-container{background:#152232;border-color:#3f7cc0;}
+        body.dark-mode .search-badge-avail{background:#1f7a1f;}
+        body.dark-mode .search-badge-notavail{background:#a52121;}
+        body.dark-mode .search-tbl-details th, body.dark-mode .search-tbl-details td{border-color:#3f7cc0;}
+        body.dark-mode .search-tbl-details th{background:#152232;color:#eaf2fb;}
+        body.dark-mode #syncStatus{color:#aaa;}
+        body.dark-mode #topDotMenuDropdown{background:#1e1e1e;border-color:#3f7cc0;}
+        body.dark-mode #topDotMenuDropdown button{border-radius:0;}
+        body.dark-mode p{color:#e8e8e8;}
     </style>
 </head>
 <body>
 
 <div id="loginPage">
+    <button id="loginNightModeBtn" class="night-toggle-btn" onclick="toggleNightMode()" style="position:fixed; top:14px; right:14px; z-index:10001;">🌙 Night Mode</button>
     <div class="login-header">Sanchar Telesystems Limited</div>
     
     <div class="loginBox" id="mainLoginBox">
@@ -124,6 +178,7 @@
     <div id="topDotMenuBtn" onclick="toggleTopDotMenu(event)" title="Quick Menu" style="position:fixed; top:14px; right:14px; z-index:6000; background:#002b5c; color:#fff; width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:bold; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.35); line-height:1;">&#8942;</div>
     <div id="topDotMenuDropdown" style="display:none; position:fixed; top:60px; right:14px; z-index:6000; background:#fff; border:2px solid #002b5c; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.25); min-width:170px; overflow:hidden;">
         <button onclick="handleToolsAccess(); closeTopDotMenu();" style="width:100%; text-align:left; background:#ffc107; color:#000; border:none; padding:12px 15px; font-weight:bold; cursor:pointer; font-size:15px; border-radius:0;">🛠️ Tools</button>
+        <button id="nightModeToggleBtn" onclick="toggleNightMode(); closeTopDotMenu();" style="width:100%; text-align:left; background:#2c3e50; color:#fff; border:none; padding:12px 15px; font-weight:bold; cursor:pointer; font-size:15px; border-radius:0;">🌙 Night Mode</button>
     </div>
 
     <div class="container">
@@ -144,6 +199,7 @@
             <button onclick="showSection('returnSection')">Return</button>
             <button onclick="showSection('faultySection')">Faulty</button>
             <button onclick="showSection('summarySection')">Summary Report</button>
+            <button id="nightModeToggleBtnMain" class="night-toggle-btn" onclick="toggleNightMode()">🌙 Night Mode</button>
         </div>
 
         <!-- MODIFIED TOOLS SECTION WITH SEARCH OPTION -->
@@ -349,7 +405,7 @@
             </div>
             <table id="issueTable">
                 <thead>
-                    <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Pool Source</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th></tr>
+                    <tr><th>Voucher No</th><th>Item</th><th>Version</th><th>Stock Pool Source</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th></tr>
                 </thead>
                 <tbody></tbody>
             </table>
@@ -393,7 +449,7 @@
             </div>
             <table id="returnTable">
                 <thead>
-                    <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Stock Pool Destination</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Status</th><th>Date</th><th>Device Details</th></tr>
+                    <tr><th>Voucher No</th><th>Item</th><th>Version</th><th>Stock Pool Destination</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Status</th><th>Date</th><th>Device Details</th></tr>
                 </thead>
                 <tbody></tbody>
             </table>
@@ -598,6 +654,26 @@ let currentGeneratedOTP = null;
 let issueRowCount = 0;
 let returnRowCount = 0;
 let globalCalculatedStock = {}; 
+
+// ================= NIGHT MODE TOGGLE =================
+function applyNightMode(isDark) {
+    document.body.classList.toggle('dark-mode', isDark);
+    let mainBtn = document.getElementById('nightModeToggleBtn');
+    if(mainBtn) mainBtn.innerHTML = isDark ? '☀️ Day Mode' : '🌙 Night Mode';
+    let mainPageBtn = document.getElementById('nightModeToggleBtnMain');
+    if(mainPageBtn) mainPageBtn.innerHTML = isDark ? '☀️ Day Mode' : '🌙 Night Mode';
+    let loginBtn = document.getElementById('loginNightModeBtn');
+    if(loginBtn) loginBtn.innerHTML = isDark ? '☀️ Day Mode' : '🌙 Night Mode';
+    try { localStorage.setItem('stl_night_mode', isDark ? '1' : '0'); } catch(e) {}
+}
+function toggleNightMode() {
+    applyNightMode(!document.body.classList.contains('dark-mode'));
+}
+(function initNightMode() {
+    let saved = '0';
+    try { saved = localStorage.getItem('stl_night_mode') || '0'; } catch(e) {}
+    applyNightMode(saved === '1');
+})();
 let pendingSecurityAction = null;
 let isToolsAuthenticated = false; // Tracks tool section password active state
 
@@ -1808,6 +1884,10 @@ function renderTables() {
         repT.appendChild(tr);
     });
 
+    // Pre-compute Voucher Numbers for Issue & Return logs (grouped by batch)
+    let issueVoucherMap = computeVoucherGroups(issueData, "IS").recordToVoucher;
+    let returnVoucherMap = computeVoucherGroups(returnData, "RE").recordToVoucher;
+
     const populateSubTable = (dataPool, elementId, type) => {
         let tbody = document.querySelector(`#${elementId} tbody`);
         tbody.innerHTML = "";
@@ -1823,9 +1903,15 @@ function renderTables() {
             } else if(type === 'rec') {
                 tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td>${x.qty}</td><td>${x.billNumber || ''}</td><td>${x.supplierName || ''}</td><td>${x.date}</td><td>${devLink}</td>`;
             } else if(type === 'issue') {
-                tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td>${x.location || ''}</td><td><strong>${x.purpose || ''}</strong></td><td>${x.remarks || ''}</td><td>${x.date}</td><td>${devLink}</td>`;
+                let voucherNo = issueVoucherMap[key] || ('STL/IS/' + sr);
+                let voucherLink = `<span class="tracking-link" style="font-weight:bold;" onclick="showVoucherDetailsModal('${voucherNo}','issue')">${voucherNo}</span>`;
+                tr.innerHTML = `<td>${voucherLink}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td>${x.location || ''}</td><td><strong>${x.purpose || ''}</strong></td><td>${x.remarks || ''}</td><td>${x.date}</td><td>${devLink}</td>`;
+                sr++;
             } else if(type === 'return') {
-                tr.innerHTML = `<td>${sr++}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td>${x.location || ''}</td><td><strong>${x.purpose || ''}</strong></td><td><span class="status-badge ${x.status === 'Ok' ? 'status-returned' : 'status-party'}">${x.status}</span></td><td>${x.date}</td><td>${devLink}</td>`;
+                let voucherNo = returnVoucherMap[key] || ('STL/RE/' + sr);
+                let voucherLink = `<span class="tracking-link" style="font-weight:bold;" onclick="showVoucherDetailsModal('${voucherNo}','return')">${voucherNo}</span>`;
+                tr.innerHTML = `<td>${voucherLink}</td><td>${x.item}</td><td>${x.version}</td><td><small>${x.stockPool || 'General'}</small></td><td>${x.qty}</td><td>${x.person || ''}</td><td>${x.party || ''}</td><td>${x.location || ''}</td><td><strong>${x.purpose || ''}</strong></td><td><span class="status-badge ${x.status === 'Ok' ? 'status-returned' : 'status-party'}">${x.status}</span></td><td>${x.date}</td><td>${devLink}</td>`;
+                sr++;
             }
             tbody.appendChild(tr);
         });
@@ -2299,7 +2385,10 @@ function saveGlobalIssues() {
 
     if(logsToSave.length === 0) { alert("No fully qualified entry row descriptions declared."); return; }
 
-    logsToSave.forEach(log => db.ref("store_issues").push(log));
+    // Shared batchId links every item-row of THIS single "Save All Issues" click
+    // together, so they all display under ONE Voucher No. (STL/IS/xxxxx) in the table.
+    let batchId = db.ref("store_issues").push().key;
+    logsToSave.forEach(log => { log.batchId = batchId; db.ref("store_issues").push(log); });
     alert("Universal Outward Issue Dispatch Records finalized & saved!");
     
     document.getElementById("issuePerson").value = "";
@@ -2371,7 +2460,10 @@ function saveGlobalReturns() {
 
     if(logsToSave.length === 0) { alert("No fully qualified return entry descriptions declared."); return; }
 
-    logsToSave.forEach(log => db.ref("store_returns").push(log));
+    // Shared batchId links every item-row of THIS single "Save All Returns" click
+    // together, so they all display under ONE Voucher No. (STL/RE/xxxxx) in the table.
+    let batchId = db.ref("store_returns").push().key;
+    logsToSave.forEach(log => { log.batchId = batchId; db.ref("store_returns").push(log); });
     alert("Universal Client Return Records finalized & saved!");
     
     document.getElementById("returnPerson").value = "";
@@ -2387,6 +2479,82 @@ function saveGlobalReturns() {
 
 // Helper: normalize a text field for loose matching (trim + lowercase)
 function normText(v) { return (v || "").toString().trim().toLowerCase(); }
+
+// ---- VOUCHER NUMBER GROUPING (Issue -> STL/IS/xxxxx, Return -> STL/RE/xxxxx) ----
+// Every item-row saved together in one "Save All Issues/Returns" click shares a
+// batchId, so they all get grouped under ONE voucher number. Old/legacy rows
+// (saved before this feature, with no batchId) are auto-grouped by matching
+// Date + Party + Purpose, so simultaneous old entries also share one voucher.
+function computeVoucherGroups(dataPool, prefix) {
+    let groups = {};
+    Object.keys(dataPool).forEach(key => {
+        let x = dataPool[key] || {};
+        let groupKey = x.batchId
+            ? ("B_" + x.batchId)
+            : ("LEGACY_" + (x.date || '') + "_" + normText(x.party) + "_" + normText(x.purpose));
+        if(!groups[groupKey]) groups[groupKey] = { date: x.date || '', sortKey: key, recKeys: [] };
+        groups[groupKey].recKeys.push(key);
+        if(key < groups[groupKey].sortKey) groups[groupKey].sortKey = key;
+    });
+
+    // Sort batches chronologically (by transaction date, then by creation order)
+    let groupArr = Object.keys(groups).map(gk => groups[gk]);
+    groupArr.sort((a, b) => {
+        if(a.date !== b.date) return a.date < b.date ? -1 : 1;
+        return a.sortKey < b.sortKey ? -1 : (a.sortKey > b.sortKey ? 1 : 0);
+    });
+
+    // Assign sequential voucher numbers per calendar year: STL/IS/26001, STL/IS/26002...
+    let yearCounters = {};
+    let recordToVoucher = {};
+    let voucherToRecords = {};
+    groupArr.forEach(g => {
+        let yy = (g.date ? new Date(g.date).getFullYear() : new Date().getFullYear()).toString().slice(-2);
+        yearCounters[yy] = (yearCounters[yy] || 0) + 1;
+        let voucherNo = `STL/${prefix}/${yy}${String(yearCounters[yy]).padStart(3, '0')}`;
+        voucherToRecords[voucherNo] = g.recKeys.map(k => dataPool[k]);
+        g.recKeys.forEach(k => recordToVoucher[k] = voucherNo);
+    });
+
+    return { recordToVoucher, voucherToRecords };
+}
+
+// Opens the shared details popup showing ALL items that were issued/returned
+// together under one voucher number (party/purpose/date shown once on top).
+function showVoucherDetailsModal(voucherNo, type) {
+    let voucherMap = type === 'issue'
+        ? computeVoucherGroups(issueData, "IS").voucherToRecords
+        : computeVoucherGroups(returnData, "RE").voucherToRecords;
+    let records = voucherMap[voucherNo] || [];
+
+    document.getElementById("modalTitle").innerText = `Voucher ${voucherNo} — Full Details (${records.length} Item${records.length !== 1 ? 's' : ''})`;
+    let container = document.getElementById("modalBody");
+
+    if(records.length === 0) {
+        container.innerHTML = "<p style='color:red;font-weight:bold;'>No records found for this voucher number!</p>";
+        document.getElementById("detailsModal").style.display = "block";
+        return;
+    }
+
+    let head = records[0];
+    let infoHTML = `<div style="background:#eef7ff;padding:10px;border-radius:6px;margin-bottom:10px;border:1px solid #b8daff;">
+        <strong>Party:</strong> ${head.party || '--'} &nbsp;|&nbsp;
+        <strong>Person:</strong> ${head.person || '--'} &nbsp;|&nbsp;
+        <strong>Location:</strong> ${head.location || '--'} &nbsp;|&nbsp;
+        <strong>Purpose:</strong> ${head.purpose || '--'} &nbsp;|&nbsp;
+        <strong>Date:</strong> ${head.date || '--'}
+        ${type === 'return' ? `&nbsp;|&nbsp; <strong>Status:</strong> ${head.status || '--'}` : ''}
+    </div>`;
+
+    let t = infoHTML + "<table><thead><tr><th>#</th><th>Item</th><th>Version</th><th>Stock Pool</th><th>Qty</th><th>Remarks</th><th>Device Details</th></tr></thead><tbody>";
+    records.forEach((x, idx) => {
+        let devJson = encodeURIComponent(JSON.stringify(x.devices || []));
+        t += `<tr><td>${idx + 1}</td><td>${x.item}</td><td>${x.version}</td><td>${x.stockPool || 'General'}</td><td>${x.qty}</td><td>${x.remarks || '-'}</td><td><span class="clickable-qty" onclick="showDeviceDetailsModal('Devices Breakdown','${devJson}')">${(x.devices || []).length} Devs</span></td></tr>`;
+    });
+    t += "</tbody></table>";
+    container.innerHTML = t;
+    document.getElementById("detailsModal").style.display = "block";
+}
 
 // Helper: does device A share a non-empty IMEI1 / IMEI2 / Serial with device B?
 function devicesMatch(a, b) {
@@ -2618,7 +2786,7 @@ function executeUniversalSearch() {
     out.innerHTML = "<h4>Live Tracking Status Matches:</h4>";
 
     let matchCount = 0;
-    let tableHTML = "<table class='search-tbl-details'><thead><tr><th>Type</th><th>Item Details</th><th>Party/Supplier</th><th>Date</th><th>Current Status</th></tr></thead><tbody>";
+    let tableHTML = "<table class='search-tbl-details'><thead><tr><th>Type</th><th>Item Details</th><th>Party/Supplier</th><th>Date</th><th>Current Status</th><th>Full Details</th></tr></thead><tbody>";
 
     // 1. Scan Live Devices Pool for Availability Status (single source of truth,
     // same computation used by Stock Report's Live Devices column)
@@ -2649,7 +2817,8 @@ function executeUniversalSearch() {
         if(x.devices) x.devices.forEach(d => { if(matchDevice(d, q)) devMatch = true; });
         if(x.party?.toLowerCase().includes(q) || x.date?.includes(q) || x.item?.toLowerCase().includes(q) || devMatch) {
             matchCount++;
-            tableHTML += `<tr><td>Outward Dispatch</td><td>${x.item} (${x.version})</td><td>Party: ${x.party}</td><td>${x.date}</td><td><span class='search-badge-notavail'>Issued to Client</span></td></tr>`;
+            let rec = encodeURIComponent(JSON.stringify(x));
+            tableHTML += `<tr><td>Outward Dispatch</td><td>${x.item} (${x.version})</td><td>Party: ${x.party}</td><td>${x.date}</td><td><span class='search-badge-notavail'>Issued to Client</span></td><td><span class="clickable-qty" onclick="showSearchResultDetails('${rec}','issue')">🔍 Full Details</span></td></tr>`;
         }
     });
 
@@ -2658,7 +2827,8 @@ function executeUniversalSearch() {
         if(x.devices) x.devices.forEach(d => { if(matchDevice(d, q)) devMatch = true; });
         if(x.party?.toLowerCase().includes(q) || x.date?.includes(q) || x.item?.toLowerCase().includes(q) || devMatch) {
             matchCount++;
-            tableHTML += `<tr><td>Client Inward Return</td><td>${x.item} (${x.version})</td><td>Party: ${x.party}</td><td>${x.date}</td><td><span class='search-badge-avail'>Returned Stock (${x.status})</span></td></tr>`;
+            let rec = encodeURIComponent(JSON.stringify(x));
+            tableHTML += `<tr><td>Client Inward Return</td><td>${x.item} (${x.version})</td><td>Party: ${x.party}</td><td>${x.date}</td><td><span class='search-badge-avail'>Returned Stock (${x.status})</span></td><td><span class="clickable-qty" onclick="showSearchResultDetails('${rec}','return')">🔍 Full Details</span></td></tr>`;
         }
     });
 
@@ -2667,7 +2837,8 @@ function executeUniversalSearch() {
     allLiveImeis.forEach(obj => {
         if(matchDevice(obj.dev, q)) {
             matchCount++;
-            tableHTML += `<tr><td>Warehouse Asset</td><td>${obj.item} (${obj.version})<br><small>S: ${obj.dev.serial||'-'} | I1: ${obj.dev.imei1||'-'}</small></td><td>In Stock</td><td>--</td><td><span class='search-badge-avail'>Available inside Store</span></td></tr>`;
+            let rec = encodeURIComponent(JSON.stringify(obj));
+            tableHTML += `<tr><td>Warehouse Asset</td><td>${obj.item} (${obj.version})<br><small>S: ${obj.dev.serial||'-'} | I1: ${obj.dev.imei1||'-'}</small></td><td>In Stock</td><td>--</td><td><span class='search-badge-avail'>Available inside Store</span></td><td><span class="clickable-qty" onclick="showSearchResultDetails('${rec}','stock')">🔍 Full Details</span></td></tr>`;
         }
     });
 
@@ -2677,6 +2848,57 @@ function executeUniversalSearch() {
     } else {
         out.innerHTML += tableHTML;
     }
+}
+
+// Opens a full-detail popup for a single Universal Search result row —
+// shows every field of the transaction (party/person/location/purpose/date/
+// remarks) plus the complete Serial/IMEI breakdown for that record.
+function showSearchResultDetails(dataJson, type) {
+    let x;
+    try { x = JSON.parse(decodeURIComponent(dataJson)); } catch(e) { return; }
+
+    let titleMap = { issue: 'Outward Dispatch — Full Details', return: 'Client Inward Return — Full Details', stock: 'Warehouse Asset — Full Details' };
+    document.getElementById("modalTitle").innerText = titleMap[type] || 'Full Details';
+    let container = document.getElementById("modalBody");
+
+    if(type === 'issue' || type === 'return') {
+        let infoHTML = `<div style="background:#eef7ff;padding:10px;border-radius:6px;margin-bottom:10px;border:1px solid #b8daff;">
+            <strong>Item:</strong> ${x.item || '--'} (${x.version || '--'}) &nbsp;|&nbsp;
+            <strong>Qty:</strong> ${x.qty || '--'} &nbsp;|&nbsp;
+            <strong>Stock Pool:</strong> ${x.stockPool || 'General'} &nbsp;|&nbsp;
+            <strong>Person:</strong> ${x.person || '--'} &nbsp;|&nbsp;
+            <strong>Party:</strong> ${x.party || '--'} &nbsp;|&nbsp;
+            <strong>Location:</strong> ${x.location || '--'} &nbsp;|&nbsp;
+            <strong>Purpose:</strong> ${x.purpose || '--'} &nbsp;|&nbsp;
+            <strong>Date:</strong> ${x.date || '--'}
+            ${type === 'return' ? `&nbsp;|&nbsp; <strong>Status:</strong> ${x.status || '--'}` : ''}
+            ${x.remarks ? `<br><strong>Remarks:</strong> ${x.remarks}` : ''}
+        </div>`;
+
+        let devices = x.devices || [];
+        let t = infoHTML + "<table><thead><tr><th>#</th><th>Serial Number</th><th>IMEI 1</th><th>IMEI 2</th><th>Remarks</th></tr></thead><tbody>";
+        if(devices.length === 0) {
+            t += "<tr><td colspan='5' style='color:red;font-weight:bold;'>No Serial/IMEI allocation tracking mapped to this record.</td></tr>";
+        } else {
+            devices.forEach((d, idx) => {
+                t += `<tr><td>${idx + 1}</td><td>${d.serial || '-'}</td><td>${d.imei1 || '-'}</td><td>${d.imei2 || '-'}</td><td>${d.remarks || '-'}</td></tr>`;
+            });
+        }
+        t += "</tbody></table>";
+        container.innerHTML = t;
+    } else if(type === 'stock') {
+        let infoHTML = `<div style="background:#eef7ff;padding:10px;border-radius:6px;margin-bottom:10px;border:1px solid #b8daff;">
+            <strong>Item:</strong> ${x.item || '--'} (${x.version || '--'}) &nbsp;|&nbsp;
+            <strong>Status:</strong> Available inside Store
+        </div>`;
+        let t = infoHTML + "<table><thead><tr><th>Serial Number</th><th>IMEI 1</th><th>IMEI 2</th><th>Remarks</th></tr></thead><tbody>";
+        t += `<tr><td>${x.dev.serial || '-'}</td><td>${x.dev.imei1 || '-'}</td><td>${x.dev.imei2 || '-'}</td><td>${x.dev.remarks || '-'}</td></tr>`;
+        t += "</tbody></table>";
+        container.innerHTML = t;
+    } else {
+        container.innerHTML = "<p style='color:red;font-weight:bold;'>Unable to load details for this record.</p>";
+    }
+    document.getElementById("detailsModal").style.display = "block";
 }
 
 function clearUniversalSearch() {
