@@ -390,8 +390,8 @@
             <div style="background:#f1f3f5; padding:12px; border-radius:6px; margin-bottom:15px;">
                 <h4>General Details</h4>
                 <input type="text" id="issuePerson" placeholder="Person">
-                <input type="text" id="issueParty" list="partyList" placeholder="Party Name" onchange="autoSaveField(this, 'partyList');">
-                <input type="text" id="issueLocation" list="locationList" placeholder="Location" onchange="autoSaveField(this, 'locationList')">
+                <input type="text" id="issueParty" list="partyList" placeholder="Party Name" oninput="autoFillPartyAddress('issueParty','issueLocation')" onchange="autoSaveField(this, 'partyList'); autoFillPartyAddress('issueParty','issueLocation');">
+                <input type="text" id="issueLocation" list="locationList" placeholder="Location" onchange="autoSaveField(this, 'locationList'); savePartyAddress('issueParty','issueLocation');">
                 
                 <select id="issuePurpose" onchange="toggleCustomPurposeField()">
                     <option value="">-- Select Purpose --</option>
@@ -433,8 +433,8 @@
             <div style="background:#f1f3f5; padding:12px; border-radius:6px; margin-bottom:15px;">
                 <h4>General Details</h4>
                 <input type="text" id="returnPerson" placeholder="Person">
-                <input type="text" id="returnParty" list="partyList" placeholder="Party Name" onchange="refreshAllReturnRowsIMEI(); autoSaveField(this, 'partyList');">
-                <input type="text" id="returnLocation" list="locationList" placeholder="Location" onchange="autoSaveField(this, 'locationList')">
+                <input type="text" id="returnParty" list="partyList" placeholder="Party Name" oninput="autoFillPartyAddress('returnParty','returnLocation')" onchange="refreshAllReturnRowsIMEI(); autoSaveField(this, 'partyList'); autoFillPartyAddress('returnParty','returnLocation');">
+                <input type="text" id="returnLocation" list="locationList" placeholder="Location" onchange="autoSaveField(this, 'locationList'); savePartyAddress('returnParty','returnLocation');">
                 
                 <select id="returnPurpose" onchange="toggleCustomReturnPurposeField()">
                     <option value="">-- Select Purpose --</option>
