@@ -13,15 +13,15 @@
             --theme-primary-rgb:0,43,92;
             --theme-page-bg:#f4f4f4;
         }
-        body{font-family:Arial;margin:0;background:var(--theme-page-bg)}
-        #loginPage{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--theme-page-bg);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999}
+        body{font-family:Arial;margin:0;min-height:100vh;background:linear-gradient(135deg, #8ec9f0 0%, #b3ddf7 45%, #d9f0fb 100%);background-attachment:fixed}
+        #loginPage{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg, rgba(135,206,250,0.55), rgba(176,224,255,0.3));display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999}
         .login-header{font-size:28px;font-weight:bold;color:var(--theme-primary);margin-bottom:20px;text-align:center}
-        .loginBox{background:#fff;width:320px;padding:25px;border-radius:10px;text-align:center;box-shadow:0 0 15px rgba(0,0,0,0.2)}
+        .loginBox{background:rgba(255,255,255,0.25);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);width:320px;padding:25px;border-radius:10px;text-align:center;box-shadow:0 0 20px rgba(135,206,250,0.5);border:1px solid rgba(255,255,255,0.45)}
         #error{color:red;font-weight:bold;margin-top:10px}
         
         /* NEW POC STORE SELECTION INTERMEDIATE PAGE STYLE */
-        #selectionPage {position:fixed;top:0;left:0;width:100%;height:100%;background:#eef2f7;display:none;flex-direction:column;justify-content:center;align-items:center;z-index:9998}
-        .store-card {background:#fff;width:200px;height:200px;border-radius:15px;display:flex;flex-direction:column;justify-content:center;align-items:center;box-shadow:0 8px 20px rgba(0,0,0,0.15);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;border:2px solid var(--theme-primary);}
+        #selectionPage {position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg, #8ec9f0 0%, #b3ddf7 45%, #d9f0fb 100%);display:none;flex-direction:column;justify-content:center;align-items:center;z-index:9998}
+        .store-card {background:rgba(255,255,255,0.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);width:200px;height:200px;border-radius:15px;display:flex;flex-direction:column;justify-content:center;align-items:center;box-shadow:0 8px 20px rgba(0,0,0,0.15);cursor:pointer;transition:transform 0.2s, box-shadow 0.2s;border:2px solid var(--theme-primary);}
         .store-card:hover {transform:scale(1.05);box-shadow:0 12px 25px rgba(0,0,0,0.25);}
         .store-icon {font-size:60px;margin-bottom:10px;}
         .store-title {font-size:20px;font-weight:bold;color:var(--theme-primary);text-transform:uppercase;letter-spacing:1px;}
@@ -34,7 +34,7 @@
         .menu{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap}
         .menu button{background:var(--theme-primary);color:#fff;border:none;padding:10px 15px;border-radius:5px;cursor:pointer;font-weight:bold}
         .menu button.toolsBtn{background:#ffc107;color:#000;}
-        .section{display:none;background:#fff;padding:15px;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);margin-bottom:15px}
+        .section{display:none;background:rgba(255,255,255,0.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:15px;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);margin-bottom:15px}
         .stockReportTabs{display:flex;gap:8px;margin-bottom:15px}
         .stockReportTabs button{background:#e9ecef;color:var(--theme-primary);border:2px solid var(--theme-primary);padding:8px 18px;border-radius:5px;cursor:pointer;font-weight:bold}
         .stockReportTabs button.active{background:var(--theme-primary);color:#fff}
@@ -49,6 +49,12 @@
         .detailsBtn{background:#17a2b8;color:#fff;font-weight:bold;cursor:pointer}
         .editBtn{background:#ffc107;color:#000;font-weight:bold;cursor:pointer}
         .addBtn{background:#17a2b8;color:#fff;font-weight:bold;cursor:pointer;margin-bottom:10px;}
+
+        /* All action buttons: light transparent green glow */
+        .saveBtn, .deleteBtn, .downloadBtn, .restoreBtn, .detailsBtn, .editBtn, .addBtn,
+        .menu button, .stockReportTabs button {
+            box-shadow: 0 0 8px rgba(40,167,69,0.55), 0 0 2px rgba(40,167,69,0.35);
+        }
         .file-input-wrapper{display:inline-block;margin:4px}
         table{width:100%;border-collapse:collapse;margin-top:15px;font-size:14px}
         table,th,td{border:1px solid #ccc;padding:8px;text-align:center}
@@ -57,13 +63,13 @@
         .header-actions{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:10px;gap:10px}
         .filter-group{display:flex;align-items:center;gap:5px;flex-wrap:wrap;background:#e9ecef;padding:5px 10px;border-radius:5px}
         .modal {display:none;position:fixed;z-index:10000;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.4)}
-        .modal-content {background-color:#fefefe;margin:5% auto;padding:20px;border:1px solid #888;width:75%;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.2)}
+        .modal-content {background-color:rgba(255,255,255,0.85);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);margin:5% auto;padding:20px;border:1px solid #888;width:75%;border-radius:8px;box-shadow:0 4px 8px rgba(0,0,0,0.2)}
         .close {color:#aaa;float:right;font-size:28px;font-weight:bold;cursor:pointer}
         .close:hover {color:#000}
         .device-entry-row {display:flex;gap:10px;margin-bottom:5px;background:#f9f9f9;padding:5px;border-radius:4px;border:1px solid #ddd}
         .settings-link {display:block;margin-top:15px;font-size:13px;color:#0066cc;cursor:pointer;text-decoration:underline}
         .imei-toggle-wrap {display:inline-flex;align-items:center;margin:4px;font-weight:bold;color:var(--theme-primary);cursor:pointer}
-        .live-imei-box {border:1px solid #bbbbbb;padding:8px; background:#fff; max-height:150px; overflow-y:auto; border-radius:4px; margin-top:5px;}
+        .live-imei-box {border:1px solid #bbbbbb;padding:8px; background:rgba(255,255,255,0.75); max-height:150px; overflow-y:auto; border-radius:4px; margin-top:5px;}
         .live-imei-item {display:flex; align-items:center; gap:8px; padding:3px 0; font-size:13px;border-bottom:1px dashed #eee;}
         .dynamic-item-row {background:#f9f9f9; padding:15px; border-radius:6px; border:1px solid #ddd; margin-bottom:15px; position:relative;}
         .remove-row-btn {position:absolute; top:10px; right:10px; background:red; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;}
@@ -120,13 +126,47 @@
         body.read-only-mode .deleteBtn,
         body.read-only-mode .editBtn,
         body.read-only-mode .restoreBtn{display:none !important}
+
+        /* ===== RESPONSIVE: PHONE gets a compact stacked layout, DESKTOP keeps the layout above ===== */
+        @media (max-width: 768px){
+            .container{width:100%;padding:10px;box-sizing:border-box}
+            header{font-size:18px;padding:12px 8px}
+            .loginBox{width:82%;max-width:300px;padding:20px}
+            .login-header{font-size:22px}
+            #selectionPage .store-card{width:130px;height:130px;margin:8px}
+            .store-icon{font-size:42px;margin-bottom:6px}
+            .store-title{font-size:15px}
+            .menu{gap:6px}
+            .menu button{flex:1 1 calc(50% - 6px);padding:10px 8px;font-size:13px}
+            .stockReportTabs{flex-wrap:wrap}
+            .stockReportTabs button{flex:1 1 calc(50% - 8px);padding:8px;font-size:13px}
+            .section{padding:10px}
+            .header-actions{flex-direction:column;align-items:stretch}
+            .filter-group{width:100%;box-sizing:border-box}
+            .universal-search-container{padding:10px}
+            .modal-content{width:92%;margin:12% auto;padding:14px}
+            .device-entry-row,.dynamic-item-row{flex-direction:column}
+            /* Tables become horizontally scrollable instead of squashing on small screens */
+            table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+            table,th,td{font-size:12px;padding:6px}
+        }
+        @media (max-width: 420px){
+            .login-header{font-size:19px}
+            .loginBox{width:88%;padding:16px}
+            .menu button, .stockReportTabs button{flex:1 1 100%}
+            header{font-size:16px}
+        }
+        @media (min-width: 769px){
+            /* Desktop/tablet: preserve the original fixed-width, multi-column layout as-is */
+            .container{width:95%}
+        }
     </style>
 </head>
 <body>
 
 <!-- TOP-RIGHT 3-DOT QUICK MENU (kept as a direct child of body, always pinned to the viewport, never scrolls with page content) -->
 <div id="topDotMenuBtn" onclick="toggleTopDotMenu(event)" title="Quick Menu" style="position:fixed !important; top:14px !important; right:14px !important; z-index:99999; background:#002b5c; color:#fff; width:42px; height:42px; border-radius:50%; display:none; align-items:center; justify-content:center; font-size:22px; font-weight:bold; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.35); line-height:1;">&#8942;</div>
-<div id="topDotMenuDropdown" style="display:none; position:fixed !important; top:60px !important; right:14px !important; z-index:99999; background:#fff; border:2px solid #002b5c; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.25); min-width:170px; overflow:hidden;">
+<div id="topDotMenuDropdown" style="display:none; position:fixed !important; top:60px !important; right:14px !important; z-index:99999; background:rgba(255,255,255,0.9); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); border:2px solid #002b5c; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.25); min-width:170px; overflow:hidden;">
     <button id="toolsMenuBtn" onclick="handleToolsAccess(); closeTopDotMenu();" style="width:100%; text-align:left; background:#ffc107; color:#000; border:none; padding:12px 15px; font-weight:bold; cursor:pointer; font-size:15px; border-radius:0;">🛠️ Tools</button>
     <button id="manageUsersMenuBtn" onclick="openUserManagement(); closeTopDotMenu();" style="display:none; width:100%; text-align:left; background:#17a2b8; color:#fff; border:none; padding:12px 15px; font-weight:bold; cursor:pointer; font-size:15px; border-radius:0;">👥 Manage Users</button>
     <button id="themeMenuBtn" onclick="openThemeSettings(); closeTopDotMenu();" style="display:none; width:100%; text-align:left; background:#6f42c1; color:#fff; border:none; padding:12px 15px; font-weight:bold; cursor:pointer; font-size:15px; border-radius:0;">🎨 Theme</button>
@@ -187,7 +227,7 @@
             <strong style="color:#002b5c; font-size:16px;">🔍 Device Status Universal Tracker:</strong><br>
             <input type="text" id="universalSearchBox" placeholder="Enter Date, Party Name, Serial No, or IMEI No..." style="width:70%; padding:10px; font-weight:bold; margin-top:5px; border:2px solid #002b5c;" onkeyup="executeUniversalSearch()">
             <button onclick="clearUniversalSearch()" style="padding:10px; background:#6c757d; color:white; border:none; font-weight:bold; cursor:pointer;">Clear</button>
-            <div id="universalSearchOutput" style="margin-top:10px; display:none; background:#fff; padding:10px; border:1px solid #ccc; border-radius:5px;"></div>
+            <div id="universalSearchOutput" style="margin-top:10px; display:none; background:rgba(255,255,255,0.8); padding:10px; border:1px solid #ccc; border-radius:5px;"></div>
         </div>
 
         <div class="menu">
