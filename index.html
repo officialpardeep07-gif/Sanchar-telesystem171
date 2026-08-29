@@ -794,9 +794,9 @@
                 <input type="text" id="userFormPassword" style="width:96%;" placeholder="Enter Password">
             </div>
             <div style="margin-bottom:10px;">
-                <label style="font-weight:bold; display:block;">⚡ Shortcut Key (optional):</label>
-                <p style="font-size:12px; color:#666; margin:0 0 6px;">Entering this key on the login page will log this user in directly, without needing Username/Password. Leave blank if no shortcut is required. Each user's shortcut key must be unique.</p>
-                <input type="text" id="userFormShortcutKey" style="width:96%;" placeholder="e.g. PARDEEP123 (leave blank to disable)">
+                <label style="font-weight:bold; display:block;">⚡ Ctrl + Number Shortcut Login (optional):</label>
+                <p style="font-size:12px; color:#666; margin:0 0 6px;">Login page par Ctrl dabaye rakhkar yeh number (0-9) dabane se yeh user seedha login ho jayega, bina Username/Password ke. Blank chhodein agar shortcut nahi chahiye. Har user ka number unique hona chahiye.</p>
+                <input type="text" id="userFormShortcutKey" maxlength="1" inputmode="numeric" pattern="[0-9]" style="width:96%;" placeholder="e.g. 1 (Ctrl+1 se login) - leave blank to disable">
             </div>
             <div style="margin-bottom:10px;">
                 <label style="font-weight:bold; display:block;">Access Level:</label>
@@ -2665,27 +2665,37 @@ function _d(s){return decodeURIComponent(atob(s).split("").map(function(c){retur
         }
     };
 
-    // ---- Shortcut Key login: bypasses Username/Password if a matching key is set for a user ----
-    window.shortcutLogin = function(){
-        var key = document.getElementById("shortcutKeyInput").value.trim();
-        if(!key){
-            document.getElementById("error").innerText = "Please enter the Shortcut Key first.";
-            return;
-        }
+    // ---- Shortcut Key login: logs a user in directly when Ctrl+Number is pressed on the login page ----
+    function doShortcutLogin(digit){
         var users = loadUsers();
-        var match = users.find(function(x){ return x.shortcutKey && x.shortcutKey === key; });
-
+        var match = users.find(function(x){ return x.shortcutKey && x.shortcutKey === digit; });
         if(match){
             setCurrentUser(match);
-            document.getElementById("shortcutKeyInput").value = "";
             document.getElementById("error").innerText = "";
             document.getElementById("loginPage").style.display = "none";
             document.getElementById("selectionPage").style.display = "flex";
             if(typeof updateApp === "function"){ updateApp(); }
-        } else {
-            document.getElementById("error").innerText = "Invalid Shortcut Key.";
         }
-    };
+        // If no user has this number assigned, silently ignore (don't show an error,
+        // since Ctrl+Number could just be an accidental browser shortcut press).
+    }
+
+    document.addEventListener("keydown", function(e){
+        var loginPageEl = document.getElementById("loginPage");
+        if(!loginPageEl || loginPageEl.style.display === "none") return; // only active on login screen
+        if(!e.ctrlKey || e.altKey || e.metaKey) return;
+
+        var digit = null;
+        if(e.key && e.key.length === 1 && e.key >= "0" && e.key <= "9"){
+            digit = e.key;
+        } else if(e.code && e.code.indexOf("Digit") === 0){
+            digit = e.code.replace("Digit", "");
+        }
+        if(digit === null) return;
+
+        e.preventDefault();
+        doShortcutLogin(digit);
+    });
 
     // ---- After the main store page opens, apply this user's permissions ----
     var _origOpenMainStorePage = window.openMainStorePage;
@@ -2786,7 +2796,7 @@ function _d(s){return decodeURIComponent(atob(s).split("").map(function(c){retur
                 "<td>" + (u.sections.toolsSection ? "✅ Yes" : "❌ No") + "</td>" +
                 "<td style='font-size:12px;'>" + allowed + "</td>" +
                 "<td style='font-size:12px;'>" + reminderLabel + "</td>" +
-                "<td style='font-size:12px;'>" + (u.shortcutKey ? ("🔑 " + u.shortcutKey) : "-") + "</td>" +
+                "<td style='font-size:12px;'>" + (u.shortcutKey ? ("🔑 Ctrl+" + u.shortcutKey) : "-") + "</td>" +
                 "<td>" +
                     "<button class='editBtn' onclick=\"showUserForm('" + u.username.replace(/'/g, "\\'") + "')\">Edit</button> " +
                     "<button class='deleteBtn' onclick=\"deleteUserAccount('" + u.username.replace(/'/g, "\\'") + "')\">Delete</button>" +
@@ -2933,9 +2943,13 @@ function _d(s){return decodeURIComponent(atob(s).split("").map(function(c){retur
         }
 
         if(shortcutKey){
+            if(!/^[0-9]$/.test(shortcutKey)){
+                alert("Shortcut Key must be a single number from 0-9 (for Ctrl+Number login).");
+                return;
+            }
             var dupeKey = users.find(function(x){ return x.shortcutKey && x.shortcutKey === shortcutKey && x.username !== originalUsername; });
             if(dupeKey){
-                alert("This Shortcut Key is already set for '" + dupeKey.username + "'. Please choose a different unique key.");
+                alert("Ctrl+" + shortcutKey + " is already set for '" + dupeKey.username + "'. Please choose a different unique number.");
                 return;
             }
         }
