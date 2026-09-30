@@ -204,6 +204,13 @@
         table{width:100%;border-collapse:collapse;margin-top:15px;font-size:14px}
         table,th,td{border:1px solid #ccc;padding:8px;text-align:center}
         th{background:var(--theme-primary);color:#fff}
+
+        /* ===== Main-page tables: table hi left-right slide kare, pura page nahi; white box se bahar na jaye ===== */
+        body{overflow-x:hidden}
+        .container,.section,.stockReportView{max-width:100%;min-width:0}
+        .tbl-scroll{width:100%;max-width:100%;overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;box-sizing:border-box}
+        .tbl-scroll > table{display:table;overflow:visible;width:100%;margin-top:10px}
+        .tbl-scroll > table th{white-space:nowrap}
         .footer{background:var(--theme-primary);color:#fff;text-align:center;padding:15px;margin-top:20px;font-size:13px;line-height:22px}
         .header-actions{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:10px;gap:10px}
         .filter-group{display:flex;align-items:center;gap:5px;flex-wrap:wrap;background:#e9ecef;padding:5px 10px;border-radius:5px}
@@ -303,6 +310,7 @@
             /* Tables become horizontally scrollable instead of squashing on small screens */
             table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
             table,th,td{font-size:12px;padding:6px}
+            .tbl-scroll > table{display:table;overflow:visible;white-space:nowrap}
         }
         @media (max-width: 420px){
             .login-header{font-size:19px}
@@ -969,10 +977,10 @@
                     <div id="qtyMoveSummary" style="margin-top:10px;"></div>
                 </div>
 
-                <table id="toolsActionTable">
+                <div class="tbl-scroll"><table id="toolsActionTable">
                     <thead><tr id="toolsTableHead"></tr></thead>
                     <tbody></tbody>
-                </table>
+                </table></div>
             </div>
         </div>
 
@@ -992,10 +1000,10 @@
                 </div>
             </div>
             <div id="lastUpdatesTableContainer">
-                <table id="lastUpdatesTable">
+                <div class="tbl-scroll"><table id="lastUpdatesTable">
                     <thead><tr id="lastUpdatesTableHead"></tr></thead>
                     <tbody></tbody>
-                </table>
+                </table></div>
             </div>
         </div>
 
@@ -1016,7 +1024,7 @@
                         <button class="downloadBtn" onclick="downloadCSV('reportTable','Stock_Report.csv')">Download Report</button>
                     </div>
                 </div>
-                <table id="reportTable">
+                <div class="tbl-scroll"><table id="reportTable">
                     <thead>
                         <tr>
                             <th>Sr.No</th>
@@ -1037,7 +1045,7 @@
                         </tr>
                     </thead>
                     <tbody></tbody>
-                </table>
+                </table></div>
             </div>
 
             <div id="stockReportView_set" class="stockReportView">
@@ -1049,7 +1057,7 @@
                         <button class="downloadBtn" onclick="downloadCSV('setStockTable','Set_Stock_Report.csv')">Download Report</button>
                     </div>
                 </div>
-                <table id="setStockTable">
+                <div class="tbl-scroll"><table id="setStockTable">
                     <thead>
                         <tr>
                             <th>Sr.No</th>
@@ -1070,7 +1078,7 @@
                         </tr>
                     </thead>
                     <tbody></tbody>
-                </table>
+                </table></div>
             </div>
         </div>
 
@@ -1130,12 +1138,12 @@
                     <button class="downloadBtn" onclick="downloadCSV('entryTable','Stock_Entries.csv')">Download Entries</button>
                 </div>
             </div>
-            <table id="entryTable">
+            <div class="tbl-scroll"><table id="entryTable">
                 <thead>
                     <tr><th>Sr.No</th><th>Item</th><th>Version</th><th>Type Of Item</th><th>Stock Type</th><th>Status</th><th>Qty</th><th>Date</th><th>Remarks</th><th>Device Details</th></tr>
                 </thead>
                 <tbody></tbody>
-            </table>
+            </table></div>
         </div>
 
         <div id="received" class="section">
@@ -1203,12 +1211,12 @@
                     <button class="downloadBtn" onclick="downloadCSV('receivedTable','Purchase_Report.csv')">Download Purchase</button>
                 </div>
             </div>
-            <table id="receivedTable">
+            <div class="tbl-scroll"><table id="receivedTable">
                 <thead>
                     <tr><th>Sr.No</th><th>MRN No.</th><th>Item</th><th>Version</th><th>Type Of Item</th><th>Stock Type</th><th>Qty</th><th>Bill No</th><th>Supplier</th><th>Date</th><th>Device Details</th></tr>
                 </thead>
                 <tbody></tbody>
-            </table>
+            </table></div>
         </div>
 
         <div id="issueSection" class="section">
@@ -1248,12 +1256,12 @@
                     <button class="downloadBtn" onclick="downloadCSV('issueTable','Issue_Report.csv')">Download Issued</button>
                 </div>
             </div>
-            <table id="issueTable">
+            <div class="tbl-scroll"><table id="issueTable">
                 <thead>
                     <tr><th>Voucher No</th><th>Reference No.</th><th>Item</th><th>Version</th><th>Stock Pool Source</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Remarks</th><th>Date</th><th>Device Details</th></tr>
                 </thead>
                 <tbody></tbody>
-            </table>
+            </table></div>
         </div>
 
         <div id="returnSection" class="section">
@@ -1298,12 +1306,12 @@
                     <button class="downloadBtn" onclick="downloadCSV('returnTable','Return_Report.csv')">Download Returns</button>
                 </div>
             </div>
-            <table id="returnTable">
+            <div class="tbl-scroll"><table id="returnTable">
                 <thead>
                     <tr><th>Voucher No</th><th>Item</th><th>Version</th><th>Stock Pool Destination</th><th>Qty</th><th>Person</th><th>Party</th><th>Location</th><th>Purpose</th><th>Status</th><th>Date</th><th>Device Details</th></tr>
                 </thead>
                 <tbody></tbody>
-            </table>
+            </table></div>
         </div>
 
         <!-- NEW FAULTY LOGS TRACKING SECTION -->
@@ -1315,7 +1323,7 @@
                     <button class="downloadBtn" onclick="downloadCSV('faultyMasterTable','Faulty_Inventory_Report.csv')">Download Faulty Logs</button>
                 </div>
             </div>
-            <table id="faultyMasterTable">
+            <div class="tbl-scroll"><table id="faultyMasterTable">
                 <thead>
                     <tr>
                         <th>Sr.No</th>
@@ -1330,7 +1338,7 @@
                     </tr>
                 </thead>
                 <tbody></tbody>
-            </table>
+            </table></div>
         </div>
 
         <div id="summarySection" class="section">
@@ -1350,7 +1358,7 @@
                     <button class="downloadBtn" onclick="downloadCSV('summaryTable','Summary_Tracking_Report.csv')">Download Summary</button>
                 </div>
             </div>
-            <table id="summaryTable">
+            <div class="tbl-scroll"><table id="summaryTable">
                 <thead>
                     <tr>
                         <th>Sr.No</th>
@@ -1367,7 +1375,7 @@
                     </tr>
                 </thead>
                 <tbody></tbody>
-            </table>
+            </table></div>
         </div>
 
         <div id="reminderSection" class="section">
@@ -1388,7 +1396,7 @@
                     <button class="downloadBtn" onclick="downloadCSV('reminderTable','Pending_Reminder_Report.csv')">Download Reminder</button>
                 </div>
             </div>
-            <table id="reminderTable">
+            <div class="tbl-scroll"><table id="reminderTable">
                 <thead>
                     <tr>
                         <th>Sr.No</th>
@@ -1409,7 +1417,7 @@
                     </tr>
                 </thead>
                 <tbody></tbody>
-            </table>
+            </table></div>
         </div>
 
         <div id="stockAlertSection" class="section">
@@ -1444,7 +1452,7 @@
                     </div>
                 </div>
                 <p style="color:#777; font-size:12px;">Leave Max Qty empty to show all items (of the selected Type) with their current stock, lowest stock first. If you enter a Max Qty, only items with that qty or less are shown.</p>
-                <table id="lowStockAlertTable">
+                <div class="tbl-scroll"><table id="lowStockAlertTable">
                     <thead>
                         <tr>
                             <th>Sr.No</th>
@@ -1455,7 +1463,7 @@
                         </tr>
                     </thead>
                     <tbody></tbody>
-                </table>
+                </table></div>
                 <p id="lowStockAlertEmptyMsg" style="display:none; text-align:center; color:#777; padding:15px;">No item matches this filter.</p>
             </div>
 
@@ -1468,7 +1476,7 @@
                     </div>
                 </div>
                 <p style="color:#777; font-size:12px;">The most frequently issued items are shown at the top (all-time total). Click any row to open its full Issue history (date, party, purpose, qty) in a modal.</p>
-                <table id="frequentIssuedTable">
+                <div class="tbl-scroll"><table id="frequentIssuedTable">
                     <thead>
                         <tr>
                             <th>Sr.No</th>
@@ -1481,7 +1489,7 @@
                         </tr>
                     </thead>
                     <tbody></tbody>
-                </table>
+                </table></div>
                 <p id="frequentIssuedEmptyMsg" style="display:none; text-align:center; color:#777; padding:15px;">No item has been issued yet.</p>
             </div>
         </div>
@@ -1506,7 +1514,7 @@
 
         <div id="userListView">
             <button class="addBtn" onclick="showUserForm(null)">+ Add New User</button>
-            <table id="userListTable">
+            <div class="tbl-scroll"><table id="userListTable">
                 <thead>
                     <tr>
                         <th>Username</th>
@@ -1519,7 +1527,7 @@
                     </tr>
                 </thead>
                 <tbody id="userListBody"></tbody>
-            </table>
+            </table></div>
         </div>
 
         <div id="userFormView" style="display:none;">
