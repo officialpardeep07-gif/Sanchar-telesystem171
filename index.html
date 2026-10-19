@@ -656,6 +656,9 @@
         .ds-title{font-size:20px;font-weight:bold}
         .ds-status{margin-left:auto;font-size:13px;font-weight:bold;color:#cde8ff}
         .ds-upload-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:rgba(255,255,255,0.75);padding:10px;margin-top:8px;border-radius:6px}
+        .ds-upload-bar{position:relative}
+        .ds-lbl{display:inline-block;padding:8px 12px;margin:4px 4px 4px 4px !important;border:1px solid #ccc;border-radius:4px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+        .ds-hidden-input{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;overflow:hidden;margin:0;padding:0;border:0}
         .ds-bin-count{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:12px;background:#fff;color:#c2410c;font-size:12px;text-align:center}
         .ds-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:rgba(255,255,255,0.75);padding:8px 10px;margin-top:8px;border-radius:6px}
         .ds-tab{background:#e9ecef;color:var(--theme-primary);border:2px solid var(--theme-primary);padding:9px 18px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px}
@@ -946,12 +949,19 @@
         <span id="dsStatus" class="ds-status"></span>
     </div>
 
+    <div id="dsNotice" style="display:none;background:#fff3cd;border:1px solid #ffeeba;color:#664d03;padding:8px 10px;margin-top:8px;border-radius:6px;font-size:13px;font-weight:bold">
+        ⚠️ This looks like an in-app browser, which often blocks the camera and file picker. Please open this page in Chrome (Android) or Safari (iPhone).
+    </div>
+
     <div class="ds-upload-bar">
-        <button class="addBtn" style="margin-bottom:4px" onclick="dsOpenCamera()">📷 Take Photo (Camera)</button>
-        <button class="addBtn" style="margin-bottom:4px" onclick="dsPickFiles()">🖼️ Upload from File</button>
+        <!-- Phone / tablet: native label -> opens the phone camera app directly -->
+        <label class="addBtn ds-lbl" id="dsCamLabel" for="dsCamInput">📷 Take Photo (Camera)</label>
+        <!-- Laptop / PC: opens a live camera window -->
+        <button class="addBtn" id="dsCamBtn" style="display:none;margin-bottom:4px" onclick="dsOpenCamera()">📷 Take Photo (Camera)</button>
+        <label class="addBtn ds-lbl" for="dsFileInput">🖼️ Upload from File</label>
         <button class="restoreBtn" style="margin-left:auto" onclick="dsOpenBin()">♻️ Recycle Bin <span class="ds-bin-count" id="dsCntBin">0</span></button>
-        <input type="file" id="dsFileInput" accept="image/*" multiple style="display:none">
-        <input type="file" id="dsCamInput" accept="image/*" capture="environment" style="display:none">
+        <input type="file" id="dsFileInput" class="ds-hidden-input" accept="image/*" multiple>
+        <input type="file" id="dsCamInput" class="ds-hidden-input" accept="image/*" capture="environment">
     </div>
 
     <div class="ds-tabs">
@@ -10484,6 +10494,20 @@ function _d(s){try{var b=atob(s),n=b.length,u=new Uint8Array(n);for(var i=0;i<n;
         if(autoClear){ setTimeout(function(){ if(el.textContent === msg) el.textContent = ""; }, 3500); }
     }
 
+    /* ---------- choose camera mode: phone = native label, PC = live camera window ---------- */
+    function useLiveCamera(){
+        return !isTouch() && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    }
+    function setupInputs(){
+        var live = useLiveCamera();
+        var lbl = $("dsCamLabel"), btn = $("dsCamBtn");
+        if(lbl) lbl.style.display = live ? "none" : "";
+        if(btn) btn.style.display = live ? "" : "none";
+        var ua = navigator.userAgent || "";
+        var inApp = /; wv\)|FBAN|FBAV|Instagram|MicroMessenger|Telegram|WhatsApp|Snapchat|Line\//i.test(ua);
+        var n = $("dsNotice"); if(n) n.style.display = inApp ? "block" : "none";
+    }
+
     /* ---------- open / close page ---------- */
     window.openDocScanPage = function(){
         $("selectionPage").style.display = "none";
@@ -10493,6 +10517,7 @@ function _d(s){try{var b=atob(s),n=b.length,u=new Uint8Array(n);for(var i=0;i<n;
         if(typeof resetInactivityTimer === "function") resetInactivityTimer();
         if(typeof resolveAndApplyTheme === "function") resolveAndApplyTheme();
         window.scrollTo(0, 0);
+        setupInputs();
         attachListener();
     };
     window.backToSelectionFromDocScan = function(){
@@ -10783,8 +10808,8 @@ function _d(s){try{var b=atob(s),n=b.length,u=new Uint8Array(n);for(var i=0;i<n;
     /* ---------- pick files ---------- */
     function processFiles(files){
         var list = Array.prototype.slice.call(files || []).filter(function(f){ return /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(f.name); });
-        if(!list.length){ alert("Please select image (photo) files only."); return; }
-        if(dsBusy){ alert("An upload is already in progress. Please wait."); return; }
+        if(!list.length){ setStatus(""); alert("Please select image (photo) files only."); return; }
+        if(dsBusy){ setStatus(""); alert("An upload is already in progress. Please wait."); return; }
         var staged = [], fail = [], chain = Promise.resolve();
         setStatus("⏳ Preparing photos...");
         list.forEach(function(f){
@@ -10801,19 +10826,31 @@ function _d(s){try{var b=atob(s),n=b.length,u=new Uint8Array(n);for(var i=0;i<n;
             if(staged.length) window.dsOpenNameModal(staged);
         });
     }
-    window.dsPickFiles = function(){ $("dsFileInput").click(); };
-    document.addEventListener("DOMContentLoaded", function(){
+    window.dsPickFiles = function(){ var el = $("dsFileInput"); if(el) el.click(); };
+    var inputsBound = false;
+    function bindInputs(){
+        if(inputsBound) return;
         var fi = $("dsFileInput"), ci = $("dsCamInput");
-        if(fi) fi.addEventListener("change", function(){ var f = this.files; processFiles(f); this.value = ""; });
-        if(ci) ci.addEventListener("change", function(){ var f = this.files; processFiles(f); this.value = ""; });
-    });
+        if(!fi || !ci) return;
+        inputsBound = true;
+        function onPick(){
+            var f = this.files ? Array.prototype.slice.call(this.files) : [];
+            this.value = "";
+            setStatus("⏳ Reading photo(s)...");
+            processFiles(f);
+        }
+        fi.addEventListener("change", onPick);
+        ci.addEventListener("change", onPick);
+    }
+    bindInputs();
+    document.addEventListener("DOMContentLoaded", bindInputs);
 
     /* ---------- camera ---------- */
     window.dsOpenCamera = function(){
-        if(isTouch() || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
-            $("dsCamInput").click();   // phone/tablet: native camera app
-        } else {
+        if(useLiveCamera()){
             startCam();                // laptop/PC: live camera window
+        } else {
+            $("dsCamInput").click();   // fallback: native camera / file chooser
         }
     };
     function startCam(){
