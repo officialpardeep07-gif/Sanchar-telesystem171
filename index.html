@@ -10494,18 +10494,27 @@ function _d(s){try{var b=atob(s),n=b.length,u=new Uint8Array(n);for(var i=0;i<n;
         if(autoClear){ setTimeout(function(){ if(el.textContent === msg) el.textContent = ""; }, 3500); }
     }
 
-    /* ---------- choose camera mode: phone = native label, PC = live camera window ---------- */
-    function useLiveCamera(){
-        return !isTouch() && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    /* ---------- camera mode: live in-page camera everywhere it is supported ---------- */
+    var liveBlocked = false;   // set when the browser refuses the camera (permission / insecure link)
+    function canLiveCamera(){
+        return !liveBlocked && window.isSecureContext !== false &&
+               !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     }
     function setupInputs(){
-        var live = useLiveCamera();
+        var live = canLiveCamera();
         var lbl = $("dsCamLabel"), btn = $("dsCamBtn");
         if(lbl) lbl.style.display = live ? "none" : "";
         if(btn) btn.style.display = live ? "" : "none";
         var ua = navigator.userAgent || "";
         var inApp = /; wv\)|FBAN|FBAV|Instagram|MicroMessenger|Telegram|WhatsApp|Snapchat|Line\//i.test(ua);
-        var n = $("dsNotice"); if(n) n.style.display = inApp ? "block" : "none";
+        var n = $("dsNotice");
+        if(n){
+            var msg = "";
+            if(inApp) msg = "⚠️ This looks like an in-app browser, which often blocks the camera and file picker. Please open this page in Chrome (Android) or Safari (iPhone).";
+            else if(window.isSecureContext === false) msg = "⚠️ The live camera needs a secure (https) link. Tap Take Photo and choose Camera in the picker that opens.";
+            else if(liveBlocked) msg = "⚠️ The camera is blocked for this site. Allow Camera permission in the browser's site settings, or use Take Photo and pick Camera in the picker.";
+            n.textContent = msg; n.style.display = msg ? "block" : "none";
+        }
     }
 
     /* ---------- open / close page ---------- */
@@ -10847,10 +10856,11 @@ function _d(s){try{var b=atob(s),n=b.length,u=new Uint8Array(n);for(var i=0;i<n;
 
     /* ---------- camera ---------- */
     window.dsOpenCamera = function(){
-        if(useLiveCamera()){
-            startCam();                // laptop/PC: live camera window
+        if(canLiveCamera()){
+            startCam();                // live camera window (phone + laptop)
         } else {
-            $("dsCamInput").click();   // fallback: native camera / file chooser
+            setupInputs();
+            $("dsCamInput").click();   // fallback: native picker with camera option
         }
     };
     function startCam(){
@@ -10859,12 +10869,16 @@ function _d(s){try{var b=atob(s),n=b.length,u=new Uint8Array(n);for(var i=0;i<n;
         navigator.mediaDevices.getUserMedia({ video: { facingMode: dsFacing, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false })
             .then(function(stream){
                 dsStream = stream;
-                $("dsCamVideo").srcObject = stream;
+                var vid = $("dsCamVideo");
+                vid.srcObject = stream;
                 $("dsCamModal").style.display = "block";
-            }).catch(function(){
+                try { var pr = vid.play(); if(pr && pr.catch) pr.catch(function(){}); } catch(e){}
+            }).catch(function(err){
                 $("dsCamModal").style.display = "none";
-                alert("Could not open the camera (check the browser permission). A file chooser will open instead.");
-                $("dsCamInput").click();
+                liveBlocked = true;
+                setupInputs();
+                alert("Could not open the camera" + (err && err.name === "NotAllowedError" ? " (permission denied)" : "") +
+                      ". Please allow Camera access for this site, or tap Take Photo again and choose Camera in the picker.");
             });
     }
     function stopStream(){
